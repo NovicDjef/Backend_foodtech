@@ -1,0 +1,25 @@
+{
+  "name": "back_foodtech",
+  "version": "1.0.0",
+  "description": "foodtech",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.11.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5"
+  }
+}

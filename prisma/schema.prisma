@@ -1,0 +1,311 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id                Int              @id @default(autoincrement())
+  username          String
+  email             String           @unique
+  password          String
+  phone             String           @unique
+  image             String?
+  User_role         User_role[]
+  livraison         Livraison[]
+  restaurant        Restaurant[]
+  historique        Historique?      @relation(fields: [historiqueId], references: [id])
+  createdAt         DateTime?        @default(now())
+  updateAt          DateTime?        @updatedAt
+  historiqueId      Int?
+  Geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
+  geolocalisationId Int?
+}
+
+model User_role {
+  Admin   Admin? @relation(fields: [adminId], references: [id])
+  adminId Int
+  Role   Role? @relation(fields: [roleId], references: [id])
+  roleId Int
+
+  @@id([adminId, roleId])
+}
+
+model Role {
+  id        Int         @id @default(autoincrement())
+  name      String
+  user_role User_role[]
+}
+
+model User {
+  id              Int               @id @default(autoincrement())
+  username        String
+  phone           String            @unique
+  image           String?
+  commande        Commande[]
+  livraison       Livraison[]
+  historique      Historique?       @relation(fields: [historiqueId], references: [id])
+  reservation     Reservation[]
+  note            Note[]
+  geolocalisation Geolocalisation[]
+  favoritePlats   FavoritePlats[]
+  createdAt       DateTime?         @default(now())
+  updateAt        DateTime?         @updatedAt
+  historiqueId    Int?
+  Article         Article?          @relation(fields: [articleId], references: [id])
+  articleId       Int?
+  Payement        Payement?         @relation(fields: [payementId], references: [id])
+  payementId      Int?
+}
+
+model Categorie {
+  id              Int            @id @default(autoincrement())
+  name_categorie  Name_categorie @default(Camerounaise)
+  image_categorie String
+  description     String?
+  restaurantId    Int?
+  Menu            Menu?          @relation(fields: [menuId], references: [id])
+  menuId          Int?
+  Plats           Plats?         @relation(fields: [platsId], references: [id])
+  platsId         Int?
+  createdAt       DateTime?      @default(now())
+  updateAt        DateTime?      @updatedAt
+}
+
+enum Name_categorie {
+  Camerounaise
+  Senegalaise
+  Americaine
+  Marocaine
+  Ivoiriene
+  Maliene
+  Francaise
+}
+
+model Restaurant {
+  id                 Int               @id @default(autoincrement())
+  nom_restaurant     String
+  ville              Ville             @default(DOUALA)
+  phone_restaurant   String?
+  menssion           MensionRestaurant @default(NOM_FAVORITE)
+  Adresse_restaurant String
+  image_restaurant   String
+  createdAt          DateTime?         @default(now())
+  updateAt           DateTime?         @updatedAt
+  Plats              Plats?            @relation(fields: [platsId], references: [id])
+  platsId            Int?
+  Article            Article?          @relation(fields: [articleId], references: [id])
+  articleId          Int?
+  Reservation        Reservation?      @relation(fields: [reservationId], references: [id])
+  reservationId      Int?
+  Admin              Admin?            @relation(fields: [adminId], references: [id])
+  adminId            Int?
+  Menu               Menu?             @relation(fields: [menuId], references: [id])
+  menuId             Int?
+}
+
+enum Ville {
+  DOUALA
+  YAOUNDE
+  KRIBI
+  BAFOUSSAM
+  BUA
+}
+
+enum MensionRestaurant {
+  FAVORITE
+  PROCHE
+  NOM_FAVORITE
+}
+
+model Menu {
+  id         Int          @id @default(autoincrement())
+  nom_menu   String
+  image_menu String
+  categorie  Categorie[]
+  plats      Plats[]
+  restaurant Restaurant[]
+  createdAt  DateTime?    @default(now())
+  updateAt   DateTime?    @updatedAt
+}
+
+model Plats {
+  id               Int             @id @default(autoincrement())
+  nom_plat         String
+  image_plat       String
+  description_plat String?
+  prix_plat        Int
+  menssionPLat     MensionPlat?    @default(FAVORITE)
+  restaurant       Restaurant[]
+  restaurantId     Int?
+  Menu             Menu?           @relation(fields: [menuId], references: [id])
+  menuId           Int?
+  commande         Commande?       @relation(fields: [CommandeId], references: [id])
+  CommandeId       Int?
+  createdAt        DateTime?       @default(now())
+  updateAt         DateTime?       @updatedAt
+  Categorie        Categorie[]
+  Article          Article?        @relation(fields: [articleId], references: [id])
+  articleId        Int?
+  favoritePlats    FavoritePlats[]
+}
+
+enum MensionPlat {
+  FAVORITE
+  NON_FAVORITE
+}
+
+model Commande {
+  id               Int                @id @default(autoincrement())
+  statut_commende  Statut_commande    @default(EN_ATTENTE)
+  User             User?              @relation(fields: [userId], references: [id])
+  userId           Int?
+  createdAt        DateTime?          @default(now())
+  updateAt         DateTime?          @updatedAt
+  Article          Article?           @relation(fields: [articleId], references: [id])
+  articleId        Int?
+  Livraison        Livraison[]
+  Historique       Historique[]
+  plats            Plats[]
+  serviceLivraison ServiceLivraison[]
+}
+
+enum Statut_commande {
+  EN_ATTENTE
+  EN_COURS_DE_LIVRAISON
+  LIVREE
+}
+
+model Article {
+  id         Int          @id @default(autoincrement())
+  title      String
+  content    String?
+  user       User[]
+  restaurant Restaurant[]
+  commande   Commande[]
+  plats      Plats[]
+  reatedAt   DateTime?    @default(now())
+  updateAt   DateTime?    @updatedAt
+}
+
+model Livraison {
+  id Int @id @default(autoincrement())
+
+  statut_livraison Statut_livraison @default(LIVREE)
+  reatedAt         DateTime?        @default(now())
+  updateAt         DateTime?        @updatedAt
+  User             User?            @relation(fields: [userId], references: [id])
+  userId           Int?
+  Commande         Commande?        @relation(fields: [commandeId], references: [id])
+  commandeId       Int?
+  Admin            Admin?           @relation(fields: [adminId], references: [id])
+  adminId          Int?
+}
+
+enum Statut_livraison {
+  LIVREE
+  ANNULEE
+}
+
+model Note {
+  id       Int       @id @default(autoincrement())
+  notation Notation  @default(ZERO)
+  reatedAt DateTime? @default(now())
+  updateAt DateTime? @updatedAt
+  User     User?     @relation(fields: [userId], references: [id])
+  userId   Int?
+}
+
+enum Notation {
+  ZERO
+  UN
+  DEUX
+  TROIS
+  QUATRE
+  CINQ
+}
+
+model Reservation {
+  id               Int              @id @default(autoincrement())
+  numero_table     String?
+  nombre_personne  Int
+  prix_reservation Prix_reservation @default(MILLE_FRANCS)
+  reatedAt         DateTime?        @default(now())
+  updateAt         DateTime?        @updatedAt
+  restaurant       Restaurant[]
+  User             User?            @relation(fields: [userId], references: [id])
+  userId           Int?
+}
+
+enum Prix_reservation {
+  MILLE_FRANCS
+  Deux_MILLE_FRANCS
+  TROIS_MILLE_FRANCS
+}
+
+model Payement {
+  id            Int           @id @default(autoincrement())
+  montant       Int
+  user          User[]
+  mode_payement Mode_payement @default(MOBILE_MONEY)
+  reatedAt      DateTime?     @default(now())
+  updateAt      DateTime?     @updatedAt
+}
+
+enum Mode_payement {
+  MOBILE_MONEY
+  CARTE_BANCAIRE
+}
+
+model slide {
+  id          Int       @id @default(autoincrement())
+  name_slide  String
+  image_slide String
+  reatedAt    DateTime? @default(now())
+  updateAt    DateTime? @updatedAt
+}
+
+model Geolocalisation {
+  id                  Int       @id @default(autoincrement())
+  name_point_localise String
+  user                User[]
+  admin               Admin[]
+  longitude           Float
+  Latitude            Float
+  reatedAt            DateTime? @default(now())
+  updateAt            DateTime? @updatedAt
+}
+
+model Historique {
+  id                Int       @id @default(autoincrement())
+  statut_historique String
+  reatedAt          DateTime? @default(now())
+  updateAt          DateTime? @updatedAt
+  Commande          Commande? @relation(fields: [commandeId], references: [id])
+  commandeId        Int?
+  Admin             Admin[]
+  User              User[]
+}
+
+model ServiceLivraison {
+  id       Int        @id @default(autoincrement())
+  name     String
+  Commande Commande[]
+}
+
+model FavoritePlats {
+  id      Int   @id @default(autoincrement())
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id])
+  platsId Int
+  plats   Plats @relation(fields: [platsId], references: [id])
+}
