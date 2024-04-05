@@ -40,11 +40,12 @@ export default {
         nom_restaurant: req.body.nom_restaurant,
         ville: req.body.ville,
         Adresse_restaurant: req.body.Adresse_restaurant,
-        // image_restaurant: req.file.filename,
-        image_restaurant: req.body.image_restaurant,
+        image_restaurant: req.file.filename,
+        // image_restaurant: req.body.image_restaurant,
         articleId: req.body.articleId,
         reservationId: req.body.reservationId,
       };
+      console.log(restaurant)
       const result = await Restaurant.create({ data: restaurant });
       res.status(200).json({
         message: 'Restaurant create success',

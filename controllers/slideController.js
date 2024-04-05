@@ -42,12 +42,12 @@ export default {
     try {
       const slide = {
         name_slide: req.body.name_slide,
-        image_slide: req.body.image_slide,
-        // image_slide: req.file.filename, //pour l'ajout dynamique
+        // image_slide: req.body.image_slide,
+        image_slide: req.file.filename, //pour l'ajout dynamique
       };
-
+      console.warn("scsdssd : ", createdSlide)
       const createdSlide = await Slide.create({ data: slide });
-
+      console.log("scsdssd : ", createdSlide)
       return res.status(200).json({
         message: 'Slide created successfully',
         result: createdSlide,
@@ -78,8 +78,8 @@ export default {
     try {
       const slide = {
         name_slide: req.body.name_slide,
-        image_slide: req.body.image_slide,
-        // image_slide: req.file.filename,   //pour l'ajout dynamique
+        // image_slide: req.body.image_slide,
+        image_slide: req.file.filename,   //pour l'ajout dynamique
       };
 
       const updatedSlide = await Slide.updateMany({ where: { id }, data: slide });

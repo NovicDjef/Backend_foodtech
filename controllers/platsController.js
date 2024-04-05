@@ -45,14 +45,13 @@ export default {
         image_plat: req.body.image_plat,
         menssionPLat: req.body.menssionPLat,
         restaurantId: req.body.restaurantId,
-        menuId: req.body.menuId,
         articleId: req.body.articleId,
       };
       console.log(plats)
       const result = await Plats.create({ data: plats });
       res.status(200).json({
         message: 'plat create success',
-        result,
+        plats: result,
       });
     } catch (error) {
       await handleServerError(res, error);
@@ -70,7 +69,6 @@ export default {
         image_plat: req.body.image_plat,
         menssionPLat: req.body.menssionPLat,
         restaurantId: req.body.restaurantId,
-        menuId: req.body.menuId,
         articleId: req.body.articleId,
       };
       const result = await Plats.update({

@@ -5,8 +5,8 @@ const router = express.Router()
 
 router.get('/articles', articleController.getAllArticle)
 router.get('/article/:id', articleController.getArticleById)
-router.post('/article', articleController.addArticle)
-router.patch('/article/:id', articleController.updateArticle)
-router.delete('/article/:id', articleController.deleteArticle)
+router.post('/createArticle', articleController.addArticle)
+router.patch('/updateArticle/:id', articleController.updateArticle)
+router.delete('/deleteArticle/:id', articleController.deleteArticle)
 
 export default router
