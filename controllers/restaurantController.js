@@ -4,12 +4,19 @@ import bcrypt from 'bcrypt';
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { restaurant: Restaurant } = prisma;
+const { restaurant: Restaurant, plats: Plats } = prisma;
 
 export default {
   async getAllRestaurant(req, res) {
     try {
-      const data = await Restaurant.findMany();
+      const data = await Restaurant.findMany({
+        include: {
+          Plats: true,
+          Article: true,
+          Reservation: true,
+          Admin: true
+        }
+      });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -23,7 +30,15 @@ export default {
   async getRestaurantById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Restaurant.findUnique({ where: { id } });
+      const data = await Restaurant.findUnique({ 
+        where: { id }, 
+        include: {
+          Plats: true,
+          Article: true,
+          Reservation: true,
+          Admin: true
+        }
+      });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -39,13 +54,16 @@ export default {
       const restaurant = {
         nom_restaurant: req.body.nom_restaurant,
         ville: req.body.ville,
+        phone_restaurant: req.body.phone_restaurant,
         Adresse_restaurant: req.body.Adresse_restaurant,
         image_restaurant: req.file.filename,
-        // image_restaurant: req.body.image_restaurant,
-        articleId: req.body.articleId,
-        reservationId: req.body.reservationId,
+        include: {
+          Plats: true,
+          Article: true,
+          Reservation: true,
+          Admin: true
+        }
       };
-      console.log(restaurant)
       const result = await Restaurant.create({ data: restaurant });
       res.status(200).json({
         message: 'Restaurant create success',
@@ -59,7 +77,15 @@ export default {
   async deleteRestaurant(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const result = await Restaurant.delete({ where: { id } });
+      const result = await Restaurant.delete({
+         where: { id },
+         include: {
+          Plats: true,
+          Article: true,
+          Reservation: true,
+          Admin: true
+        } 
+        });
       res.status(201).json({
         message: 'Restaurant delete success',
         result,
@@ -75,11 +101,15 @@ export default {
       const restaurant = {
         nom_restaurant: req.body.nom_restaurant,
         ville: req.body.ville,
+        phone_restaurant: req.body.phone_restaurant,
         Adresse_restaurant: req.body.Adresse_restaurant,
-        // image_restaurant: req.file.filename,
-        image_restaurant: req.body.image_restaurant,
-        articleId: req.body.articleId,
-        reservationId: req.body.reservationId,
+        image_restaurant: req.file.filename,
+        include: {
+          Plats: true,
+          Article: true,
+          Reservation: true,
+          Admin: true
+        }
       };
       const result = await Restaurant.update({ data: restaurant, where: { id } });
       res.status(201).json({

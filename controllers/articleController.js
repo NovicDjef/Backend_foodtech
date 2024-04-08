@@ -11,7 +11,16 @@ export default {
   // CRUD des Articles
   async getAllArticle(req, res) {
     try {
-      const data = await Article.findMany();
+      const data = await Article.findMany({
+        include: {
+          Restaurant: {
+            include: {
+              Plats: true,
+            },
+          }
+
+        }
+      });
       if (data.length > 0) {
         res.status(200).json(data);
       } else {
@@ -25,7 +34,17 @@ export default {
   async getArticleById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Article.findUnique({ where: { id } });
+      const data = await Article.findUnique({ 
+        where: { id },
+        include: {
+          Restaurant: {
+            include: {
+              Plats: true,
+            },
+          }
+
+        }
+       });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -41,6 +60,14 @@ export default {
       const article = {
         title: req.body.title,
         content: req.body.content,
+        include: {
+          Restaurant: {
+            include: {
+              Plats: true,
+            },
+          }
+
+        }
       };
       const result = await Article.create({ data: article });
       res.status(200).json({
@@ -55,7 +82,16 @@ export default {
   async deleteArticle(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const result = await Article.delete({ where: { id } });
+      const result = await Article.delete({ 
+        where: { id },
+        include: {
+          Restaurant: {
+            include: {
+              Plats: true,
+            },
+          }
+        }
+       });
       res.status(201).json({
         message: 'Article Materiel delete success',
         result,
@@ -71,6 +107,13 @@ export default {
       const article = {
         title: req.body.title,
         content: req.body.content,
+        include: {
+          Restaurant: {
+            include: {
+              Plats: true,
+            },
+          }
+        }
       };
       const result = await Article.updateMany({ data: article }, { where: { id } });
       res.status(201).json({

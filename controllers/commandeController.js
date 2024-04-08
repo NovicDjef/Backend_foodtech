@@ -5,12 +5,20 @@ import bcrypt from 'bcrypt';
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { commande: Commande } = prisma;
+const { commande: Commande, platCommande: PlatCommande, plats: Plats } = prisma;
 
 export default {
   async getAllCommande(req, res) {
     try {
-      const data = await Commande.findMany();
+      const data = await Commande.findMany({
+        include: {
+          platCommande: {
+            include: {
+              plats: true,
+            },
+          },
+        },
+      });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -24,7 +32,16 @@ export default {
   async getCommandeById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Commande.findUnique({ where: { id } });
+      const data = await Commande.findUnique({
+        where: { id },
+        include: {
+          platCommande: {
+            include: {
+              plats: true,
+            },
+          },
+        }, 
+      });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -41,7 +58,14 @@ export default {
       const commande = {
         statut_commende: req.body.statut_commende,
         userId: req.body.userId,
-        platsId: req.body.platsId,
+        platCommande: {
+          create: req.body.platCommande.map(pc => ({
+            quantity: pc.quantity,
+            plats: {
+              connect: { id: pc.platId },
+            },
+          })),
+        },
         articleId: req.body.articleId,
       };
       console.log(commande);
@@ -74,7 +98,18 @@ export default {
       const commande = {
         statut_commende: req.body.statut_commende,
         userId: req.body.userId,
-        platsId: req.body.platsId,
+        platCommande: {
+          upsert: req.body.platCommande.map(pc => ({
+            where: { id: pc.id }, // Utilisez l'ID du PlatCommande si disponible pour mettre à jour ou créer
+            update: { quantity: pc.quantity },
+            create: {
+              quantity: pc.quantity,
+              plats: {
+                connect: { id: pc.platId },
+              },
+            },
+          })),
+        },
         articleId: req.body.articleId,
       };
       const result = await Commande.update({ data: commande, where: { id } });

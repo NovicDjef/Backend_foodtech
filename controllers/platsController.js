@@ -10,7 +10,15 @@ const { plats: Plats } = prisma;
 export default {
   async getAllPlats(req, res) {
     try {
-      const data = await Plats.findMany();
+      const data = await Plats.findMany({
+        include: {
+          Restaurant: true,
+          Article: true,
+          note: true,
+          //PlatCommande: true,
+          Categorie: true
+        }
+      });
       if (data.length > 0) {
         res.status(200).json(data);
       } else {
@@ -24,7 +32,18 @@ export default {
   async getPlatsById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Plats.findUnique({ where: { id } });
+      const data = await Plats.findUnique({ 
+        where: { id },
+        include: {
+          Restaurant: true,
+          Article: true,
+          Commande: true,
+          Admin: true,
+          Note: true,
+          PlatCommande: true,
+          Categorie: true
+        }
+       });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -39,13 +58,17 @@ export default {
     try {
       const plats = {
         nom_plat: req.body.nom_plat,
-        // image_plat: req.file.filename,
+        image_plat: req.file.filename,
         description_plat: req.body.description_plat,
-        prix_plat: req.body.prix_plat,
-        image_plat: req.body.image_plat,
+        prix_plat: parseInt(req.body.prix_plat),
         menssionPLat: req.body.menssionPLat,
-        restaurantId: req.body.restaurantId,
-        articleId: req.body.articleId,
+        // include: {
+        //   Restaurant: true,
+        //   Article: true,
+        //   note: true,
+        //   //PlatCommande: true,
+        //   Categorie: true
+        // }
       };
       console.log(plats)
       const result = await Plats.create({ data: plats });
@@ -63,13 +86,17 @@ export default {
       const id = parseInt(req.params.id);
       const plats = {
         nom_plat: req.body.nom_plat,
-        // image_plat: req.file.filename,
+        image_plat: req.file.filename,
         description_plat: req.body.description_plat,
-        prix_plat: req.body.prix_plat,
-        image_plat: req.body.image_plat,
+        prix_plat: parseInt(req.body.prix_plat),
         menssionPLat: req.body.menssionPLat,
-        restaurantId: req.body.restaurantId,
-        articleId: req.body.articleId,
+        include: {
+          Restaurant: true,
+          Article: true,
+          note: true,
+          //PlatCommande: true,
+          Categorie: true
+        }
       };
       const result = await Plats.update({
         where: { id },
@@ -87,7 +114,15 @@ export default {
   async deletePlats(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const result = await Plats.delete({ where: { id } });
+      const result = await Plats.delete({ 
+        where: { id },
+        include: {
+          Restaurant: true,
+          Article: true,
+          note: true,
+          //PlatCommande: true,
+          Categorie: true
+        } });
       res.status(201).json({
         message: 'Software delete success',
         result,

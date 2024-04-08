@@ -8,7 +8,11 @@ const { geolocalisation: Geolocalisation } = prisma;
 export default {
   async getAllGeolocalisation(req, res) {
     try {
-      const data = await Geolocalisation.findMany();
+      const data = await Geolocalisation.findMany({
+        include: {
+          user: true
+        }
+      });
       if (data.length > 0) {
         res.status(200).json(data);
       } else {
@@ -22,7 +26,12 @@ export default {
   async getGeolocalisationById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Geolocalisation.findUnique({ where: { id: id } });
+      const data = await Geolocalisation.findUnique({ 
+        where: { id: id },
+        include: {
+          user: true
+        }
+       });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -36,9 +45,12 @@ export default {
   async addGeolocalisation(req, res) {
     try {
       const geolocalisation = {
-        name_point_localise: req.body.name_point_localise,
+        // name_point_localise: req.body.name_point_localise,
         longitude: req.body.longitude,
-        Latitude: req.body.Latitude,
+        latitude: req.body.latitude,
+        include: {
+          user: true
+        }
       };
       const result = await Geolocalisation.create({ data: geolocalisation });
       res.status(200).json({
@@ -53,7 +65,11 @@ export default {
   async deleteGeolocalisation(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const result = await Geolocalisation.delete({ where: { id: id } });
+      const result = await Geolocalisation.delete({ 
+        where: { id: id },
+        include: {
+          user: true
+        } });
       res.status(201).json({
         message: 'Geolocalisation Materiel delete success',
         result,

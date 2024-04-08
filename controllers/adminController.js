@@ -24,10 +24,17 @@ export default {
         email: req.body.email,
         password: hash,
         phone: req.body.phone,
-        image: req.body.image,
-        // image: req.file.filename,  // a prendre en compte losrque on veu ajouter l'image
-        historiqueId: req.body.historiqueId,
-        geolocalisationId: req.body.geolocalisationId,
+        image: req.file.filename,  // a prendre en compte losrque on veu ajouter l'image
+        // historiqueId: req.body.historiqueId,
+        // geolocalisationId: req.body.geolocalisationId,
+        include: {
+          livraison: true,
+          User_role: true,
+          restaurant: true,
+          commande: true,
+          geolocalisations: true,
+          historique: true
+        }
       };
 
       const createdUser = await Admin.create({ data: user });
@@ -43,7 +50,16 @@ export default {
 
   async getAllAdmin(req, res) {
     try {
-      const data = await Admin.findMany();
+      const data = await Admin.findMany({
+        include: {
+          livraison: true,
+          User_role: true,
+          restaurant: true,
+          commande: true,
+          geolocalisations: true,
+          historique: true
+        }
+      });
 
       if (data.length > 0) {
         return res.status(200).json(data);

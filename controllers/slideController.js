@@ -42,10 +42,9 @@ export default {
     try {
       const slide = {
         name_slide: req.body.name_slide,
-        // image_slide: req.body.image_slide,
-        image_slide: req.file.filename, //pour l'ajout dynamique
+        image_slide: req.file.filename, 
       };
-      console.warn("scsdssd : ", createdSlide)
+      console.warn("scsdssd : ", slide)
       const createdSlide = await Slide.create({ data: slide });
       console.log("scsdssd : ", createdSlide)
       return res.status(200).json({

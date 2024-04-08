@@ -10,7 +10,11 @@ const { categorie: Categorie } = prisma;
 export default {
   async getAllCategorie(req, res) {
     try {
-      const data = await Categorie.findMany();
+      const data = await Categorie.findMany({
+        include: {
+          plats: true
+        }
+      });
       if (data.length > 0) {
         res.status(200).json(data);
       } else {
@@ -24,7 +28,11 @@ export default {
   async getCategorieById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Categorie.findUnique({ where: { id } });
+      const data = await Categorie.findUnique({ 
+        where: { id },
+        include: {
+          plats: true
+        } });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -39,12 +47,12 @@ export default {
     try {
       const categorie = {
         name_categorie: req.body.name_categorie,
-        // image_categorie: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
-        image_categorie: req.body.image_categorie, 
+        image_categorie: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
         description: req.body.description,
         restaurantId: req.body.restaurantId,
-        menuId: req.body.menuId,
-        platsId: req.body.platsId,
+        include: {
+          plats: true
+        }
       };
       const result = await Categorie.create({ data: categorie });
       res.status(200).json({
@@ -59,7 +67,11 @@ export default {
   async deleteCategorie(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const result = await Categorie.delete({ where: { id } });
+      const result = await Categorie.delete({ 
+        where: { id },
+        include: {
+          plats: true
+        } });
       res.status(201).json({
         message: 'categorie delete success',
         result,
@@ -74,12 +86,11 @@ export default {
       const id = parseInt(req.params.id);
       const categorie = {
         name_categorie: req.body.name_categorie,
-       // image_categorie: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
-       image_categorie: req.body.image_categorie, 
+       image_categorie: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
         description: req.body.description,
-        restaurantId: req.body.restaurantId,
-        menuId: req.body.menuId,
-        platsId: req.body.platsId,
+        include: {
+          plats: true,
+        }
       };
       const result = await Categorie.update({
         where: { id },

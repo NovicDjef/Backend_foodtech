@@ -9,7 +9,9 @@ const { user: User } = prisma;
 export default {
   async signUpUser(req, res) {
     try {
-      const result = await User.findUnique({ where: { phone: req.body.phone  } });
+      const result = await User.findUnique({ 
+        where: { phone: req.body.phone  },
+       });
 
       if (result) {
         return res.status(409).json({ message: 'Phone number already exists' });
@@ -17,11 +19,20 @@ export default {
       const user = {
         username: req.body.username,
         phone: req.body.phone,
-        image: req.body.image,
-        // image: req.file.filename,  // a prendre en compte losrque on veu ajouter l'image
-        historiqueId: req.body.historiqueId,
-        articleId: req.body.articleId,
-        payementId: req.body.payementId,
+        image: req.file.filename,  // a prendre en compte losrque on veu ajouter l'image
+        // historiqueId: req.body.historiqueId,
+        // articleId: req.body.articleId,
+        // payementId: req.body.payementId,
+        include: {
+          note: true,
+          Article: true,
+          reservation: true,
+          Payement: true,
+          favoritePlats: true,
+          geolocalisations: true,
+          commande: true,
+          historique: true
+        }
       };
 
       const createdUser = await User.create({ data: user });
@@ -37,7 +48,18 @@ export default {
 
   async getAllUser(req, res) {
     try {
-      const data = await User.findMany();
+      const data = await User.findMany({
+        include: {
+          note: true,
+          Article: true,
+          reservation: true,
+          Payement: true,
+          favoritePlats: true,
+          geolocalisations: true,
+          commande: true,
+          historique: true
+        }
+      });
 
       if (data.length > 0) {
         return res.status(200).json(data);
@@ -53,7 +75,18 @@ export default {
     const id = parseInt(req.params.id);
 
     try {
-      const data = await User.findUnique({ where: { id } });
+      const data = await User.findUnique({ 
+        where: { id },
+        include: {
+          note: true,
+          Article: true,
+          reservation: true,
+          Payement: true,
+          favoritePlats: true,
+          geolocalisations: true,
+          commande: true,
+          historique: true
+        } });
 
       if (data) {
         return res.status(200).json(data);

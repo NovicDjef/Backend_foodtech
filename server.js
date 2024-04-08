@@ -27,7 +27,8 @@ server.use(cors())
 server.use((req, res, next) => {
     res.setHeader('Access-Controll-Allow-Origin', '*')
     res.setHeader('Access-Controll-Allow-Headers', 'Origin,X-Requested-With,Content,Accept,Content-Type,Authorization')
-    res.setHeader('Access-Controll-Allow-Methods', 'GET,POST,PUT,DELETE')
+    res.setHeader('Access-Controll-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
+    res.setHeader('Access-Control-Allow-Credentials', true);
     next()
   })
 
@@ -58,7 +59,7 @@ server.use("/", restaurantRoute)
 
 
 
-server.use('/upload', express.static('images'))
+server.use('/images', express.static('images'))
 
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0'; // Écouter sur toutes les interfaces réseau

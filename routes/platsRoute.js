@@ -6,8 +6,8 @@ const router = express.Router()
 
 router.get('/plats', platsController.getAllPlats)
 router.get('/plat/:id', platsController.getPlatsById)
-router.post('/plat', upload.single('image'), platsController.addPlats)
-router.patch('/plat/:id', upload.single('image'), platsController.updatePlats)
+router.post('/plat', upload.single('image_plat'), platsController.addPlats)
+router.patch('/plat/:id', upload.single('image_plat'), platsController.updatePlats)
 router.delete('/plat/:id', platsController.deletePlats)
 
 export default router

@@ -10,7 +10,12 @@ const { payement: Payement } = prisma;
 export default {
   async getAllPayement(req, res) {
     try {
-      const data = await Payement.findMany();
+      const data = await Payement.findMany({
+        include: {
+          User: true,
+          Commande: true,
+        }
+      });
       if (data.length > 0) {
         res.status(200).json(data);
       } else {
@@ -24,7 +29,12 @@ export default {
   async getPayementById(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const data = await Payement.findUnique({ where: { id } });
+      const data = await Payement.findUnique({ 
+        where: { id },
+        include: {
+          User: true,
+          Commande: true,
+        } });
       if (data) {
         res.status(200).json(data);
       } else {
@@ -40,6 +50,10 @@ export default {
       const payement = {
         montant: req.body.montant,
         mode_payement: req.body.mode_payement,
+        include: {
+          User: true,
+          Commande: true,
+        }
       };
       const result = await Payement.create({ data: payement });
       res.status(200).json({
@@ -54,7 +68,12 @@ export default {
   async deletePayement(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const result = await Payement.delete({ where: { id } });
+      const result = await Payement.delete({ 
+        where: { id },
+        include: {
+          User: true,
+          Commande: true,
+        } });
       res.status(201).json({
         message: 'Payement Materiel delete success',
         result,
@@ -70,6 +89,10 @@ export default {
       const payement = {
         montant: req.body.montant,
         mode_payement: req.body.mode_payement,
+        include: {
+          User: true,
+          Commande: true,
+        }
       };
       const result = await Payement.updateMany({
         data: payement,
