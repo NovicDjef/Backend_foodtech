@@ -6,7 +6,7 @@ const router = express.Router()
 
 router.get('/commandes', commandeController.getAllCommande)
 router.get('/commande/:id', commandeController.getCommandeById)
-router.post('/commande', upload.single('image'), commandeController.addCommande)
+router.post('/commande', commandeController.addCommande)
 router.patch('/commande/:id', commandeController.updateCommande)
 router.delete('/commande/:id', commandeController.deleteCommande)
 

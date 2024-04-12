@@ -11,10 +11,9 @@ export default {
     try {
       const data = await Restaurant.findMany({
         include: {
-          Plats: true,
-          Article: true,
-          Reservation: true,
-          Admin: true
+          plats: true,
+          article: true,
+          reservation: true,
         }
       });
       if (data) {
@@ -33,10 +32,9 @@ export default {
       const data = await Restaurant.findUnique({ 
         where: { id }, 
         include: {
-          Plats: true,
-          Article: true,
-          Reservation: true,
-          Admin: true
+          plats: true,
+          article: true,
+          reservation: true,
         }
       });
       if (data) {
@@ -52,17 +50,15 @@ export default {
   async addRestaurant(req, res) {
     try {
       const restaurant = {
-        nom_restaurant: req.body.nom_restaurant,
-        ville: req.body.ville,
-        phone_restaurant: req.body.phone_restaurant,
-        Adresse_restaurant: req.body.Adresse_restaurant,
-        image_restaurant: req.file.filename,
-        include: {
-          Plats: true,
-          Article: true,
-          Reservation: true,
-          Admin: true
-        }
+        nom: req.body.nom,
+        phone: req.body.phone,
+        adresse: req.body.adresse,
+        image: req.file.filename,
+        // include: {
+        //   plats: true,
+        //   article: true,
+        //   reservation: true,
+        // }
       };
       const result = await Restaurant.create({ data: restaurant });
       res.status(200).json({
@@ -80,11 +76,10 @@ export default {
       const result = await Restaurant.delete({
          where: { id },
          include: {
-          Plats: true,
-          Article: true,
-          Reservation: true,
-          Admin: true
-        } 
+          plats: true,
+          article: true,
+          reservation: true,
+        }
         });
       res.status(201).json({
         message: 'Restaurant delete success',
@@ -99,17 +94,15 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const restaurant = {
-        nom_restaurant: req.body.nom_restaurant,
-        ville: req.body.ville,
-        phone_restaurant: req.body.phone_restaurant,
-        Adresse_restaurant: req.body.Adresse_restaurant,
-        image_restaurant: req.file.filename,
-        include: {
-          Plats: true,
-          Article: true,
-          Reservation: true,
-          Admin: true
-        }
+        nom: req.body.nom,
+        phone: req.body.phone,
+        adresse: req.body.adresse,
+        image: req.file.filename,
+        // include: {
+        //   plats: true,
+        //   article: true,
+        //   reservation: true,
+        // }
       };
       const result = await Restaurant.update({ data: restaurant, where: { id } });
       res.status(201).json({

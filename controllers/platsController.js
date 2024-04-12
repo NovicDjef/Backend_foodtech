@@ -12,11 +12,10 @@ export default {
     try {
       const data = await Plats.findMany({
         include: {
-          Restaurant: true,
-          Article: true,
+          commande: true,
+          article: true,
           note: true,
-          //PlatCommande: true,
-          Categorie: true
+          favoritePlats: true
         }
       });
       if (data.length > 0) {
@@ -35,13 +34,10 @@ export default {
       const data = await Plats.findUnique({ 
         where: { id },
         include: {
-          Restaurant: true,
-          Article: true,
-          Commande: true,
-          Admin: true,
-          Note: true,
-          PlatCommande: true,
-          Categorie: true
+          commande: true,
+          article: true,
+          note: true,
+          favoritePlats: true
         }
        });
       if (data) {
@@ -57,18 +53,16 @@ export default {
   async addPlats(req, res) {
     try {
       const plats = {
-        nom_plat: req.body.nom_plat,
-        image_plat: req.file.filename,
-        description_plat: req.body.description_plat,
-        prix_plat: parseInt(req.body.prix_plat),
-        menssionPLat: req.body.menssionPLat,
-        // include: {
-        //   Restaurant: true,
-        //   Article: true,
-        //   note: true,
-        //   //PlatCommande: true,
-        //   Categorie: true
-        // }
+        nom: req.body.nom,
+        image: req.file.filename,
+        description: req.body.description,
+        prix: parseInt(req.body.prix),
+        include: {
+          commande: true,
+          article: true,
+          note: true,
+          favoritePlats: true
+        }
       };
       console.log(plats)
       const result = await Plats.create({ data: plats });
@@ -85,17 +79,15 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const plats = {
-        nom_plat: req.body.nom_plat,
-        image_plat: req.file.filename,
-        description_plat: req.body.description_plat,
-        prix_plat: parseInt(req.body.prix_plat),
-        menssionPLat: req.body.menssionPLat,
+        nom: req.body.nom,
+        image: req.file.filename,
+        description: req.body.description,
+        prix: parseInt(req.body.prix),
         include: {
-          Restaurant: true,
-          Article: true,
+          commande: true,
+          article: true,
           note: true,
-          //PlatCommande: true,
-          Categorie: true
+          favoritePlats: true
         }
       };
       const result = await Plats.update({

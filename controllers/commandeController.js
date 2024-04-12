@@ -5,20 +5,15 @@ import bcrypt from 'bcrypt';
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { commande: Commande, platCommande: PlatCommande, plats: Plats } = prisma;
+const { commande: Commande, plats: Plats } = prisma;
 
 export default {
   async getAllCommande(req, res) {
     try {
       const data = await Commande.findMany({
-        include: {
-          platCommande: {
-            include: {
-              plats: true,
-            },
-          },
-        },
+        
       });
+      console.log(data)
       if (data) {
         res.status(200).json(data);
       } else {
@@ -34,13 +29,6 @@ export default {
       const id = parseInt(req.params.id);
       const data = await Commande.findUnique({
         where: { id },
-        include: {
-          platCommande: {
-            include: {
-              plats: true,
-            },
-          },
-        }, 
       });
       if (data) {
         res.status(200).json(data);
@@ -51,33 +39,34 @@ export default {
       await handleServerError(res, error);
     }
   },
-
   async addCommande(req, res) {
     try {
-      console.log(req.file);
-      const commande = {
-        statut_commende: req.body.statut_commende,
-        userId: req.body.userId,
-        platCommande: {
-          create: req.body.platCommande.map(pc => ({
-            quantity: pc.quantity,
-            plats: {
-              connect: { id: pc.platId },
-            },
-          })),
-        },
-        articleId: req.body.articleId,
-      };
-      console.log(commande);
-      const result = await Commande.create({ data: commande });
-      res.status(200).json({
-        message: 'Commande create success',
-        result,
-      });
+        console.log(req.file);
+        const commandes = req.body.commande; // Accéder à la clé "commande"
+        if (!commandes || !Array.isArray(commandes)) {
+            return res.status(400).json({ message: "Invalid command data" });
+        }
+        const results = await Promise.all(commandes.map(async commandeData => {
+            const commande = {
+                quantity: commandeData.quantity,
+                userId: commandeData.userId,
+                platsId: commandeData.platsId
+            };
+            console.log("la commande: " + commande)
+            const result = await Commande.create({ data: commande });
+            console.log("commande créée :", result);
+            return result;
+        }));
+        console.log("commandes créées :", results);
+        res.status(200).json({
+            message: 'Commande créée avec succès',
+            results,
+        });
     } catch (error) {
-      await handleServerError(res, error);
+        await handleServerError(res, error);
     }
-  },
+},
+
 
   async deleteCommande(req, res) {
     try {
@@ -96,23 +85,10 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const commande = {
-        statut_commende: req.body.statut_commende,
-        userId: req.body.userId,
-        platCommande: {
-          upsert: req.body.platCommande.map(pc => ({
-            where: { id: pc.id }, // Utilisez l'ID du PlatCommande si disponible pour mettre à jour ou créer
-            update: { quantity: pc.quantity },
-            create: {
-              quantity: pc.quantity,
-              plats: {
-                connect: { id: pc.platId },
-              },
-            },
-          })),
-        },
-        articleId: req.body.articleId,
+        quantity: req.body.quantity,
       };
       const result = await Commande.update({ data: commande, where: { id } });
+      console.log("Résultats de la création des commandes :", result);
       res.status(201).json({
         message: 'Commande update success',
         result,

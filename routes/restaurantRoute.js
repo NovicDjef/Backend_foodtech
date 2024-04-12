@@ -6,8 +6,8 @@ const router = express.Router()
 
 router.get('/restaurants', restaurantController.getAllRestaurant)
 router.get('/restaurant/:id', restaurantController.getRestaurantById)
-router.post('/restaurant', upload.single('image_restaurant'), restaurantController.addRestaurant)
-router.patch('/restaurant/:id', upload.single('image_restaurant'), restaurantController.updateRestaurant)
+router.post('/restaurant', upload.single('image'), restaurantController.addRestaurant)
+router.patch('/restaurant/:id', upload.single('image'), restaurantController.updateRestaurant)
 router.delete('/restaurant/:id', restaurantController.deleteRestaurant)
 
 export default router

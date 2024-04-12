@@ -44,26 +44,29 @@ export default {
       }
     },
 
-  addLivraison(req, res) {
+async addLivraison(req, res) {
+  try{
     const livraison = {
-    statut_livraison: req.body.statut_livraison,
-    userId : req.body.userId ,
-    commandeId: req.body.commandeId,
-    adminId: req.body.adminId,
-    }
-    Livraison.create({ data: livraison })
-      .then((result) => {
-        res.status(200).json({
-          message: 'Livraison create success',
-          result,
-        })
-      })
-      .catch((error) => {
-        res.status(500).json({
-          message: 'Somthing went Wrong',
-          error: error,
-        })
-      })
+      statut: req.body.statut,
+      adresse: req.body.adresse,
+      serviceLivraisonId : req.body.serviceLivraisonId,
+      // include: {
+      //   commande: true
+      // }
+      }
+      console.log(livraison)
+      const result = await Livraison.create({ data: livraison });
+      console.log("resultat  :", result)
+      res.status(200).json({
+        message: 'Livraison create success',
+        livraison: result,
+      });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Somthing went Wrong',
+      error: error,
+    });
+  }
   },
   async deleteLivraison(req, res) {
     try {
@@ -84,12 +87,16 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const livraison = {
-        statut_livraison: req.body.statut_livraison,
-        userId: req.body.userId,
-        commandeId: req.body.commandeId,
-        adminId: req.body.adminId,
+        //statut: req.body.statut,
+      adresse: req.body.adresse,
+      //serviceLivraisonId : req.body.serviceLivraisonId,
+      // include: {
+      //   commande: true
+      // }
       };
+      console.log(livraison)
       const result = await Livraison.updateMany({ data: livraison, where: { id: id } });
+      console.log(result)
       res.status(201).json({
         message: 'Livraison update success',
         result,

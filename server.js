@@ -17,6 +17,8 @@ import payementRoute from "./routes/payementRoute.js"
 import platsRoute from "./routes/platsRoute.js"
 import articleRoute from "./routes/articleRoute.js"
 import restaurantRoute from "./routes/restaurantRoute.js"
+import villeRoute from "./routes/villeRoute.js"
+import otpRoute from "./routes/otpRoute.js"
 
 const server = express()
 server.use(express.json())
@@ -55,8 +57,8 @@ server.use("/", payementRoute)
 server.use("/", platsRoute)
 server.use("/", articleRoute)
 server.use("/", restaurantRoute)
-
-
+server.use("/", villeRoute)
+server.use("/", otpRoute)
 
 
 server.use('/images', express.static('images'))

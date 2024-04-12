@@ -14,20 +14,17 @@ datasource db {
 }
 
 model Admin {
-  id               Int               @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
   username         String
-  email            String            @unique
+  email            String           @unique
   password         String
-  phone            String            @unique
+  phone            String           @unique
   image            String?
-  commande         Commande[]
-  User_role        User_role[]
-  livraison        Livraison[]
+  user_role        User_role[]
   restaurant       Restaurant[]
-  historique       Historique[]
-  createdAt        DateTime?         @default(now())
-  updateAt         DateTime?         @updatedAt
-  geolocalisations Geolocalisation[]
+  createdAt        DateTime?        @default(now())
+  updateAt         DateTime?        @updatedAt
+  geolocalisations Geolocalisation?
 }
 
 model User_role {
@@ -46,148 +43,104 @@ model Role {
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
   username         String
-  phone            String            @unique
+  phone            String           @unique
   image            String?
   commande         Commande[]
   historique       Historique[]
   reservation      Reservation[]
   note             Note[]
-  geolocalisations Geolocalisation[]
+  geolocalisations Geolocalisation?
   favoritePlats    FavoritePlats[]
-  createdAt        DateTime?         @default(now())
-  updateAt         DateTime?         @updatedAt
-  Article          Article[]
-  Payement         Payement[]
+  createdAt        DateTime?        @default(now())
+  updateAt         DateTime?        @updatedAt
+  article          Article[]
+  payement         Payement[]
+  otp              OTP?
+}
+
+model OTP {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  code      Int
+  createdAt DateTime @default(now())
+  expiredAt DateTime @default(dbgenerated("CURRENT_TIMESTAMP + interval '5 minute'"))
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+
+  @@unique([userId])
 }
 
 model Categorie {
-  id              Int            @id @default(autoincrement())
-  name_categorie  Name_categorie @default(Camerounaise)
-  image_categorie String
-  plats           Plats[]
-  description     String?
-  createdAt       DateTime?      @default(now())
-  updateAt        DateTime?      @updatedAt
-}
-
-enum Name_categorie {
-  Camerounaise
-  Senegalaise
-  Americaine
-  Marocaine
-  Ivoiriene
-  Maliene
-  Francaise
+  id          Int       @id @default(autoincrement())
+  name        String
+  image       String
+  plats       Plats[]
+  description String?
+  createdAt   DateTime? @default(now())
+  updateAt    DateTime? @updatedAt
 }
 
 model Restaurant {
-  id                 Int               @id @default(autoincrement())
-  nom_restaurant     String
-  ville              Ville             @default(DOUALA)
-  phone_restaurant   String?
-  menssion           MensionRestaurant @default(NOM_FAVORITE)
-  Adresse_restaurant String
-  image_restaurant   String
-  createdAt          DateTime?         @default(now())
-  updateAt           DateTime?         @updatedAt
-  Plats               Plats[]
-  Article            Article[]
-  Reservation        Reservation[]
-  Admin              Admin?            @relation(fields: [adminId], references: [id])
-  adminId            Int?
+  id               Int              @id @default(autoincrement())
+  nom              String
+  phone            String?
+  adresse          String
+  image            String
+  createdAt        DateTime?        @default(now())
+  updateAt         DateTime?        @updatedAt
+  plats            Plats[]
+  article          Article[]
+  reservation      Reservation[]
+  geolocalisations Geolocalisation?
+  Admin            Admin?           @relation(fields: [adminId], references: [id])
+  adminId          Int?
+  Ville            Ville?           @relation(fields: [villeId], references: [id])
+  villeId          Int?
 }
 
-enum Ville {
-  DOUALA
-  YAOUNDE
-  KRIBI
-  BAFOUSSAM
-  BUA
+model Ville {
+  id         Int          @id @default(autoincrement())
+  nom        String
+  restaurant Restaurant[]
 }
-
-enum MensionRestaurant {
-  FAVORITE
-  PROCHE
-  NOM_FAVORITE
-}
-
-// model Menu {
-//   id           Int         @id @default(autoincrement())
-//   nom_menu     String
-//   image_menu   String 
-//   categorie    Categorie[]
-//   createdAt    DateTime?   @default(now())
-//   updateAt     DateTime?   @updatedAt
-//   Restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
-//   restaurantId Int?
-// }
 
 model Plats {
-  id               Int            @id @default(autoincrement())
-  nom_plat         String
-  image_plat       String
-  description_plat String?
-  prix_plat        Float
-  quantity         Int            @default(1)
-  menssionPLat     MensionPlat?   @default(FAVORITE)
-  createdAt        DateTime?      @default(now())
-  updateAt         DateTime?      @updatedAt
-  Article          Article[]
-  note             Note[]
-  favoritePlats    FavoritePlats? @relation(fields: [favoritePlatsId], references: [id])
-  favoritePlatsId  Int?
-  Restaurant       Restaurant?    @relation(fields: [restaurantId], references: [id])
-  restaurantId     Int?
-  PlatCommande     PlatCommande[]
-  Categorie        Categorie?     @relation(fields: [categorieId], references: [id])
-  categorieId      Int?
-}
-
-enum MensionPlat {
-  FAVORITE
-  NON_FAVORITE
+  id            Int             @id @default(autoincrement())
+  nom           String
+  image         String
+  description   String?
+  prix          Float
+  quantity      Int             @default(1)
+  createdAt     DateTime?       @default(now())
+  updateAt      DateTime?       @updatedAt
+  article       Article[]
+  note          Note[]
+  Restaurant    Restaurant?     @relation(fields: [restaurantId], references: [id])
+  restaurantId  Int?
+  Categorie     Categorie?      @relation(fields: [categorieId], references: [id])
+  categorieId   Int?
+  commande      Commande[]
+  favoritePlats FavoritePlats[]
 }
 
 model Commande {
-  id                 Int               @id @default(autoincrement())
-  statut_commende    Statut_commande   @default(EN_ATTENTE)
-  User               User?             @relation(fields: [userId], references: [id])
-  userId             Int?
-  createdAt          DateTime?         @default(now())
-  updateAt           DateTime?         @updatedAt
-  platCommande       PlatCommande[]
-  Historique         Historique?       @relation(fields: [historiqueId], references: [id])
-  historiqueId       Int?
-  ServiceLivraison   ServiceLivraison? @relation(fields: [serviceLivraisonId], references: [id])
-  serviceLivraisonId Int?
-  Admin              Admin?            @relation(fields: [adminId], references: [id])
-  adminId            Int?
-  Livraison          Livraison?        @relation(fields: [livraisonId], references: [id])
-  livraisonId        Int?
-  Payement           Payement?         @relation(fields: [payementId], references: [id])
-  payementId         Int?
-}
-
-enum Statut_commande {
-  EN_ATTENTE
-  EN_COURS_DE_LIVRAISON
-  LIVREE
-}
-
-model PlatCommande {
-  id         Int      @id @default(autoincrement())
-  plats      Plats    @relation(fields: [platId], references: [id])
-  platId     Int
-  commande   Commande @relation(fields: [commandeId], references: [id])
-  commandeId Int
-  quantity   Int
+  id          Int        @id @default(autoincrement())
+  quantity    Int
+  User        User?      @relation(fields: [userId], references: [id])
+  userId      Int?
+  createdAt   DateTime?  @default(now())
+  updateAt    DateTime?  @updatedAt
+  Plats       Plats?     @relation(fields: [platsId], references: [id])
+  platsId     Int?
+  Livraison   Livraison? @relation(fields: [livraisonId], references: [id])
+  livraisonId Int?
 }
 
 model Article {
   id           Int         @id @default(autoincrement())
-  title        String
+  titre        String
   content      String?
   reatedAt     DateTime?   @default(now())
   updateAt     DateTime?   @updatedAt
@@ -200,18 +153,20 @@ model Article {
 }
 
 model Livraison {
-  id               Int              @id @default(autoincrement())
-  statut_livraison Statut_livraison @default(LIVREE)
-  reatedAt         DateTime?        @default(now())
-  updateAt         DateTime?        @updatedAt
-  Commande         Commande[]
-  Admin            Admin?           @relation(fields: [adminId], references: [id])
-  adminId          Int?
+  id                 Int               @id @default(autoincrement())
+  statut             Statut            @default(NON_LIVRE)
+  adresse            String
+  dateLivraison      DateTime?         @default(now())
+  updateAt           DateTime?         @updatedAt
+  commande           Commande[]
+  ServiceLivraison   ServiceLivraison? @relation(fields: [serviceLivraisonId], references: [id])
+  serviceLivraisonId Int?
 }
 
-enum Statut_livraison {
+enum Statut {
   LIVREE
   ANNULEE
+  NON_LIVRE
 }
 
 model Note {
@@ -235,33 +190,26 @@ enum Notation {
 }
 
 model Reservation {
-  id               Int              @id @default(autoincrement())
+  id               Int         @id @default(autoincrement())
   numero_table     String?
   nombre_personne  Int
-  prix_reservation Prix_reservation @default(MILLE_FRANCS)
-  reatedAt         DateTime?        @default(now())
-  updateAt         DateTime?        @updatedAt
-  User             User?            @relation(fields: [userId], references: [id])
+  prix_reservation Float
+  reatedAt         DateTime?   @default(now())
+  updateAt         DateTime?   @updatedAt
+  User             User?       @relation(fields: [userId], references: [id])
   userId           Int?
-  Restaurant       Restaurant?      @relation(fields: [restaurantId], references: [id])
+  Restaurant       Restaurant? @relation(fields: [restaurantId], references: [id])
   restaurantId     Int?
-}
-
-enum Prix_reservation {
-  MILLE_FRANCS
-  Deux_MILLE_FRANCS
-  TROIS_MILLE_FRANCS
 }
 
 model Payement {
   id            Int           @id @default(autoincrement())
   montant       Int
   mode_payement Mode_payement @default(MOBILE_MONEY)
-  paymentDate   DateTime?     @default(now())
+  datPayement   DateTime?     @default(now())
   updateAt      DateTime?     @updatedAt
   User          User?         @relation(fields: [userId], references: [id])
   userId        Int?
-  Commande      Commande[]
 }
 
 enum Mode_payement {
@@ -270,45 +218,47 @@ enum Mode_payement {
 }
 
 model slide {
-  id          Int       @id @default(autoincrement())
-  name_slide  String
-  image_slide String
-  reatedAt    DateTime? @default(now())
-  updateAt    DateTime? @updatedAt
+  id       Int       @id @default(autoincrement())
+  name     String
+  image    String
+  reatedAt DateTime? @default(now())
+  updateAt DateTime? @updatedAt
 }
 
 model Geolocalisation {
-  id                  Int       @id @default(autoincrement())
-  user                User?     @relation(fields: [userId], references: [id])
-  userId              Int?
-  longitude           Float
-  latitude            Float
-  reatedAt            DateTime? @default(now())
-  updateAt            DateTime? @updatedAt
-  Admin               Admin?    @relation(fields: [adminId], references: [id])
-  adminId             Int?
+  id           Int         @id @default(autoincrement())
+  user         User?       @relation(fields: [userId], references: [id])
+  userId       Int?        @unique
+  longitude    Float
+  latitude     Float
+  reatedAt     DateTime?   @default(now())
+  updateAt     DateTime?   @updatedAt
+  Admin        Admin?      @relation(fields: [adminId], references: [id])
+  adminId      Int?        @unique
+  Restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  restaurantId Int?        @unique
 }
 
 model Historique {
-  id                Int        @id @default(autoincrement())
-  statut_historique String
-  reatedAt          DateTime?  @default(now())
-  updateAt          DateTime?  @updatedAt
-  Commande          Commande[]
-  Admin             Admin[]
-  User              User?      @relation(fields: [userId], references: [id])
-  userId            Int?
+  id       Int       @id @default(autoincrement())
+  statut   String
+  reatedAt DateTime? @default(now())
+  updateAt DateTime? @updatedAt
+  User     User?     @relation(fields: [userId], references: [id])
+  userId   Int?
 }
 
 model ServiceLivraison {
-  id       Int        @id @default(autoincrement())
-  name     String
-  Commande Commande[]
+  id          Int         @id @default(autoincrement())
+  nom         String
+  description String
+  frais       Float
+  livraison   Livraison[]
 }
 
 model FavoritePlats {
   id     Int     @id @default(autoincrement())
   User   User?   @relation(fields: [userId], references: [id])
   userId Int?
-  Plats  Plats[]
+  plats  Plats[]
 }

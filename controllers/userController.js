@@ -9,6 +9,54 @@ const { user: User } = prisma;
 export default {
   async signUpUser(req, res) {
     try {
+      // Vérification si le numéro de téléphone existe déjà
+      const existingUser = await User.findUnique({ where: { phone: req.body.phone } });
+      if (existingUser) {
+        return res.status(409).json({ message: 'Phone number already exists' });
+      }
+
+      // Génération du code OTP
+      const otpCode = generateOTP();
+
+      // Stockage du code OTP dans la base de données
+      await storeOTPInDatabase(req.body.phone, otpCode);
+
+      // Envoi du code OTP à l'utilisateur
+      await sendOTPToUser(req.body.phone, otpCode);
+
+      // Création de l'utilisateur dans la base de données
+      const newUser = await User.create({
+        data: {
+          username: req.body.username,
+          phone: req.body.phone,
+          image: req.file.filename,
+          // historiqueId: req.body.historiqueId,
+          // articleId: req.body.articleId,
+          // payementId: req.body.payementId,
+          include: {
+            note: true,
+            Article: true,
+            reservation: true,
+            Payement: true,
+            favoritePlats: true,
+            geolocalisations: true,
+            commande: true,
+            historique: true
+          }
+        }
+      });
+
+      return res.status(200).json({
+        message: 'User created successfully',
+        user: newUser,
+      });
+    } catch (error) {
+      return handleServerError(res, error);
+    }
+  },
+
+  async signUpUser(req, res) {
+    try {
       const result = await User.findUnique({ 
         where: { phone: req.body.phone  },
        });
@@ -25,7 +73,7 @@ export default {
         // payementId: req.body.payementId,
         include: {
           note: true,
-          Article: true,
+          article: true,
           reservation: true,
           Payement: true,
           favoritePlats: true,
@@ -51,9 +99,9 @@ export default {
       const data = await User.findMany({
         include: {
           note: true,
-          Article: true,
+          article: true,
           reservation: true,
-          Payement: true,
+          payement: true,
           favoritePlats: true,
           geolocalisations: true,
           commande: true,

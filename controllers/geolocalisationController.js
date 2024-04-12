@@ -48,9 +48,9 @@ export default {
         // name_point_localise: req.body.name_point_localise,
         longitude: req.body.longitude,
         latitude: req.body.latitude,
-        include: {
-          user: true
-        }
+        // include: {
+        //   user: true
+        // }
       };
       const result = await Geolocalisation.create({ data: geolocalisation });
       res.status(200).json({
@@ -92,7 +92,7 @@ export default {
         where: { id: id },
       });
       res.status(201).json({
-        message: 'Geolocalisation Materiel update success',
+        message: 'Geolocalisation update success',
         result,
       });
     } catch (error) {
