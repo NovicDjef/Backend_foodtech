@@ -39,32 +39,28 @@ export default {
 
     async addPhoneUserOTP(req, res){
         try {
-            const { phone } = req.body;
             const userData = req.body.userData
             const user = await User.create({ data: userData });
             
             // Génération de l'OTP
-        console.log("data user :", userData)
         const otpCode = generateOTP();
-        console.debug('code OTP: ', otpCode)
               
         // Création de l'OTP avec une référence à l'utilisateur créé
         const result = await prisma.OTP.create({ 
             data: { 
                 phone: userData.phone,
-                code: otpCode,
-                user: { connect: { id: user.id } } // Connecter l'OTP à l'utilisateur créé
+                code: parseInt(otpCode),
+                user: { connect: { id: user.id } } 
             } 
         });
-        console.debug('code OTP phone: ', otpCode, phone, userData.phone)
         console.log("resultat  :", result);
         res.status(200).json({
             message: 'user & OTP and phone create success',
             user,
             result,
-            otp: result
         });
           } catch (error) {
+            console.log("erreirhnnndnd : ", error)
             return handleServerError(res, error);
           }
     },
@@ -76,7 +72,7 @@ export default {
             const userOTP = await prisma.OTP.findFirst({
                 where: {
                     phone: phone,
-                    code: otpCode,
+                    code: parseInt(otpCode),
                     expiredAt: { gte: new Date() } // Vérifiez si l'OTP n'est pas expiré
                 }
             });

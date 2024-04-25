@@ -46,13 +46,13 @@ export default {
   async addCategorie(req, res) {
     try {
       const categorie = {
-        name_categorie: req.body.name_categorie,
-        image_categorie: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
+        name: req.body.name,
+        image: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
         description: req.body.description,
-        restaurantId: req.body.restaurantId,
-        include: {
-          plats: true
-        }
+        // restaurantId: req.body.restaurantId,
+        // include: {
+        //   plats: true
+        // }
       };
       const result = await Categorie.create({ data: categorie });
       res.status(200).json({
@@ -82,23 +82,24 @@ export default {
   },
 
   async updateCategorie(req, res) {
+    const id = parseInt(req.params.id);
     try {
-      const id = parseInt(req.params.id);
       const categorie = {
-        name_categorie: req.body.name_categorie,
-       image_categorie: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
-        description: req.body.description,
-        include: {
-          plats: true,
-        }
+        name: req.body.name,
+        image: req.file.filename, 
+        description: req.body.description,   
+        // restaurantId: req.body.restaurantId,
+        // include: {
+        //   plats: true,
+        // }
       };
-      const result = await Categorie.update({
+      const result = await Categorie.updateMany({
         where: { id },
         data: categorie,
       });
       res.status(201).json({
         message: 'categorie update success',
-        result,
+        result: result,
       });
     } catch (error) {
       await handleServerError(res, error);

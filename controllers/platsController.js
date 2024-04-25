@@ -83,12 +83,12 @@ export default {
         image: req.file.filename,
         description: req.body.description,
         prix: parseInt(req.body.prix),
-        include: {
-          commande: true,
-          article: true,
-          note: true,
-          favoritePlats: true
-        }
+        // include: {
+        //   commande: true,
+        //   article: true,
+        //   note: true,
+        //   favoritePlats: true
+        // }
       };
       const result = await Plats.update({
         where: { id },

@@ -50,6 +50,18 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
+CREATE TABLE "OTP" (
+    "id" SERIAL NOT NULL,
+    "phone" TEXT NOT NULL,
+    "code" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP + interval '5 minute',
+    "userId" INTEGER NOT NULL,
+
+    CONSTRAINT "OTP_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Categorie" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -80,7 +92,6 @@ CREATE TABLE "Restaurant" (
 CREATE TABLE "Ville" (
     "id" SERIAL NOT NULL,
     "nom" TEXT NOT NULL,
-    "quartier" TEXT NOT NULL,
 
     CONSTRAINT "Ville_pkey" PRIMARY KEY ("id")
 );
@@ -105,6 +116,7 @@ CREATE TABLE "Plats" (
 CREATE TABLE "Commande" (
     "id" SERIAL NOT NULL,
     "quantity" INTEGER NOT NULL,
+    "prix" DOUBLE PRECISION NOT NULL,
     "userId" INTEGER,
     "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3),
@@ -248,6 +260,9 @@ CREATE UNIQUE INDEX "Admin_phone_key" ON "Admin"("phone");
 CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "OTP_userId_key" ON "OTP"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Geolocalisation_userId_key" ON "Geolocalisation"("userId");
 
 -- CreateIndex
@@ -267,6 +282,9 @@ ALTER TABLE "User_role" ADD CONSTRAINT "User_role_adminId_fkey" FOREIGN KEY ("ad
 
 -- AddForeignKey
 ALTER TABLE "User_role" ADD CONSTRAINT "User_role_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OTP" ADD CONSTRAINT "OTP_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Restaurant" ADD CONSTRAINT "Restaurant_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Admin"("id") ON DELETE SET NULL ON UPDATE CASCADE;

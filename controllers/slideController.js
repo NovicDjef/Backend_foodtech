@@ -41,8 +41,8 @@ export default {
   async addSlide(req, res) {
     try {
       const slide = {
-        name_slide: req.body.name_slide,
-        image_slide: req.file.filename, 
+        name: req.body.name,
+        image: req.file.filename,
       };
       console.warn("scsdssd : ", slide)
       const createdSlide = await Slide.create({ data: slide });
@@ -76,9 +76,8 @@ export default {
 
     try {
       const slide = {
-        name_slide: req.body.name_slide,
-        // image_slide: req.body.image_slide,
-        image_slide: req.file.filename,   //pour l'ajout dynamique
+        name: req.body.name,
+        image: req.file.filename,  
       };
 
       const updatedSlide = await Slide.updateMany({ where: { id }, data: slide });

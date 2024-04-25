@@ -26,13 +26,24 @@ server.use(express.urlencoded({ extended: false }))
 server.use(cors())
 
 
-server.use((req, res, next) => {
-    res.setHeader('Access-Controll-Allow-Origin', '*')
-    res.setHeader('Access-Controll-Allow-Headers', 'Origin,X-Requested-With,Content,Accept,Content-Type,Authorization')
-    res.setHeader('Access-Controll-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    next()
-  })
+// server.use((req, res, next) => {
+//     res.setHeader('Access-Controll-Allow-Origin', '*')
+//     res.setHeader('Access-Controll-Allow-Headers', 'Origin,X-Requested-With,Content,Accept,Content-Type,Authorization')
+//     res.setHeader('Access-Controll-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
+//     res.setHeader('Access-Control-Allow-Credentials', true);
+//     next()
+//   })
+  server.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173'); // Remplacez par l'URL de votre application React
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+  } else {
+      next();
+  }
+  });
 
 server.get('/', (req, res) => {
     res.status(200).json({

@@ -104,6 +104,7 @@ export default {
         //   reservation: true,
         // }
       };
+      console.log("restaurant :", restaurant)
       const result = await Restaurant.update({ data: restaurant, where: { id } });
       res.status(201).json({
         message: 'equpement update success',
