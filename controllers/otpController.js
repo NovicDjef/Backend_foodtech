@@ -42,7 +42,6 @@ export default {
             const userData = req.body.userData
             const user = await User.create({ data: userData });
             
-            // Génération de l'OTP
         const otpCode = generateOTP();
               
         // Création de l'OTP avec une référence à l'utilisateur créé
@@ -59,6 +58,7 @@ export default {
             user,
             result,
         });
+        console.debug("eeeeeee : ", user)
           } catch (error) {
             console.log("erreirhnnndnd : ", error)
             return handleServerError(res, error);

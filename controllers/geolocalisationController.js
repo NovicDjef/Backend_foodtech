@@ -9,9 +9,9 @@ export default {
   async getAllGeolocalisation(req, res) {
     try {
       const data = await Geolocalisation.findMany({
-        include: {
-          user: true
-        }
+        // include: {
+        //   user: true
+        // }
       });
       if (data.length > 0) {
         res.status(200).json(data);
@@ -83,7 +83,7 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const geolocalisation = {
-        name_point_localise: req.body.name_point_localise,
+        // name_point_localise: req.body.name_point_localise,
         longitude: req.body.longitude,
         Latitude: req.body.Latitude,
       };

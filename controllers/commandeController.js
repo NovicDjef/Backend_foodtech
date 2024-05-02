@@ -52,8 +52,12 @@ export default {
                 platsId: commandeData.platsId
             };
             const result = await Commande.create({ data: commande });
+            console.log("resultat :", commande)
             return result;
+            
         }));
+        
+        console.log("resultat :", results)
         res.status(200).json({
             message: 'Commande créée avec succès',
             results,

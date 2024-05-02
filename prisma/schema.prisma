@@ -51,13 +51,14 @@ model User {
   historique       Historique[]
   reservation      Reservation[]
   note             Note[]
-  geolocalisations Geolocalisation?
   favoritePlats    FavoritePlats[]
   createdAt        DateTime?        @default(now())
   updateAt         DateTime?        @updatedAt
   article          Article[]
   payement         Payement[]
   otp              OTP?
+  Geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
+  geolocalisationId Int?
 }
 
 model OTP {
@@ -83,21 +84,22 @@ model Categorie {
 }
 
 model Restaurant {
-  id               Int              @id @default(autoincrement())
-  nom              String
-  phone            String?
-  adresse          String
-  image            String
-  createdAt        DateTime?        @default(now())
-  updateAt         DateTime?        @updatedAt
-  plats            Plats[]
-  article          Article[]
-  reservation      Reservation[]
-  geolocalisations Geolocalisation?
-  Admin            Admin?           @relation(fields: [adminId], references: [id])
-  adminId          Int?
-  Ville            Ville?           @relation(fields: [villeId], references: [id])
-  villeId          Int?
+  id          Int           @id @default(autoincrement())
+  nom         String
+  phone       String?
+  adresse     String
+  image       String
+  createdAt   DateTime?     @default(now())
+  updateAt    DateTime?     @updatedAt
+  plats       Plats[]
+  article     Article[]
+  reservation Reservation[]
+  Admin             Admin?           @relation(fields: [adminId], references: [id])
+  adminId           Int?
+  Ville             Ville?           @relation(fields: [villeId], references: [id])
+  villeId           Int?
+  Geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
+  geolocalisationId Int?
 }
 
 model Ville {
@@ -128,7 +130,7 @@ model Plats {
 model Commande {
   id          Int        @id @default(autoincrement())
   quantity    Int
-  prix Float
+  prix        Float
   User        User?      @relation(fields: [userId], references: [id])
   userId      Int?
   createdAt   DateTime?  @default(now())
@@ -227,17 +229,15 @@ model slide {
 }
 
 model Geolocalisation {
-  id           Int         @id @default(autoincrement())
-  user         User?       @relation(fields: [userId], references: [id])
-  userId       Int?        @unique
-  longitude    Float
-  latitude     Float
-  reatedAt     DateTime?   @default(now())
-  updateAt     DateTime?   @updatedAt
-  Admin        Admin?      @relation(fields: [adminId], references: [id])
-  adminId      Int?        @unique
-  Restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
-  restaurantId Int?        @unique
+  id         Int          @id @default(autoincrement())
+  longitude  Float
+  latitude   Float
+  reatedAt   DateTime?    @default(now())
+  updateAt   DateTime?    @updatedAt
+  Admin      Admin?       @relation(fields: [adminId], references: [id])
+  adminId    Int?         @unique
+  Restaurant Restaurant[]
+  User User[]
 }
 
 model Historique {

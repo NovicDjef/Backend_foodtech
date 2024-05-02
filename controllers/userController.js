@@ -103,7 +103,6 @@ export default {
           reservation: true,
           payement: true,
           favoritePlats: true,
-          geolocalisations: true,
           commande: true,
           historique: true
         }
