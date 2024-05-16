@@ -38,34 +38,74 @@ export default {
       await handleServerError(res, error);
     }
   },
-  async addCommande(req, res) {
-    try {
-        const commandes = req.body.commande; // Accéder à la clé "commande"
-        if (!commandes || !Array.isArray(commandes)) {
-            return res.status(400).json({ message: "Invalid command data" });
-        }
-        const results = await Promise.all(commandes.map(async commandeData => {
-            const commande = {
-                quantity: commandeData.quantity,
-                prix: commandeData.prix,
-                userId: commandeData.userId,
-                platsId: commandeData.platsId
-            };
-            const result = await Commande.create({ data: commande });
-            console.log("resultat :", commande)
-            return result;
+//   async addCommande(req, res) {
+//     try {
+//         const commandes = req.body.commande; // Accéder à la clé "commande"
+//         if (!commandes || !Array.isArray(commandes)) {
+//             return res.status(400).json({ message: "Invalid command data" });
+//         }
+//         const results = await Promise.all(commandes.map(async commandeData => {
+//             const commande = {
+//                 quantity: commandeData.quantity,
+//                 prix: commandeData.prix,
+//                 recommandation: commandeData.recommandation,
+//                 userId: commandeData.userId,
+//                 platsId: commandeData.platsId
+//             };
+//             const result = await Commande.create({ data: commande });
+//             console.log("resultat :", commande)
+//             return result;
             
-        }));
+//         }));
         
-        console.log("resultat :", results)
-        res.status(200).json({
-            message: 'Commande créée avec succès',
-            results,
-        });
-    } catch (error) {
-        await handleServerError(res, error);
+//         console.log("resultat :", results)
+//         res.status(200).json({
+//             message: 'Felicitation votre Commande a été créée avec succès vous recevrez un Appel dans les minutes qui suivre.',
+//             results,
+//         });
+//     } catch (error) {
+//         await handleServerError(res, error);
+//     }
+// },
+
+async addCommande(req, res) {
+  try {
+    const commandes = req.body.commande;
+    if (!commandes || !Array.isArray(commandes)) {
+      return res.status(400).json({ message: "Invalid command data" });
     }
+
+    const userExists = await prisma.User.findUnique({
+      where: { id: commandes[0].userId }
+    });
+
+    if (!userExists) {
+      return res.status(400).json({ message: "Cet utilisateur n'existe pas" });
+    }
+    const results = await Promise.all(commandes.map(async commandeData => {
+      const commande = {
+        quantity: commandeData.quantity,
+        prix: commandeData.prix,
+        recommandation: commandeData.recommandation,
+        userId: commandeData.userId,
+        platsId: commandeData.platsId
+      };
+      const result = await Commande.create({ data: commande });
+      console.log("Commande ajoutée :", commande);
+      return result;    
+              
+    }));
+
+    res.status(200).json({
+      message: 'Félicitation, votre commande a été créée avec succès. Vous recevrez un appel dans les minutes qui suivent.',
+      results,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la commande :", error);
+    res.status(500).json({ message: 'Une erreur s\'est produite lors du traitement de votre commande.' });
+  }
 },
+
 
 
   async deleteCommande(req, res) {
@@ -86,6 +126,7 @@ export default {
       const id = parseInt(req.params.id);
       const commande = {
         quantity: req.body.quantity,
+        recommandation: req.body.recommandation,
         prix: req.body.prix,
       };
       const result = await Commande.update({ data: commande, where: { id } });

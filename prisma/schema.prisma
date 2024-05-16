@@ -43,20 +43,20 @@ model Role {
 }
 
 model User {
-  id               Int              @id @default(autoincrement())
-  username         String
-  phone            String           @unique
-  image            String?
-  commande         Commande[]
-  historique       Historique[]
-  reservation      Reservation[]
-  note             Note[]
-  favoritePlats    FavoritePlats[]
-  createdAt        DateTime?        @default(now())
-  updateAt         DateTime?        @updatedAt
-  article          Article[]
-  payement         Payement[]
-  otp              OTP?
+  id                Int              @id @default(autoincrement())
+  username          String
+  phone             String           @unique
+  image             String?
+  commande          Commande[]
+  historique        Historique[]
+  reservation       Reservation[]
+  note              Note[]
+  favoritePlats     FavoritePlats[]
+  createdAt         DateTime?        @default(now())
+  updateAt          DateTime?        @updatedAt
+  article           Article[]
+  payement          Payement[]
+  otp               OTP?
   Geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
   geolocalisationId Int?
 }
@@ -84,22 +84,33 @@ model Categorie {
 }
 
 model Restaurant {
-  id          Int           @id @default(autoincrement())
-  nom         String
-  phone       String?
-  adresse     String
-  image       String
-  createdAt   DateTime?     @default(now())
-  updateAt    DateTime?     @updatedAt
-  plats       Plats[]
-  article     Article[]
-  reservation Reservation[]
-  Admin             Admin?           @relation(fields: [adminId], references: [id])
-  adminId           Int?
-  Ville             Ville?           @relation(fields: [villeId], references: [id])
-  villeId           Int?
-  Geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
-  geolocalisationId Int?
+  id                   Int                 @id @default(autoincrement())
+  nom                  String
+  phone                String?
+  adresse              String
+  image                String
+  description          String
+  ratings              Float               @default(0)
+  createdAt            DateTime?           @default(now())
+  updateAt             DateTime?           @updatedAt
+  latitude             Float
+  longitude            Float
+  plats                Plats[]
+  article              Article[]
+  reservation          Reservation[]
+  heuresOuverture      HeuresOuverture[]
+  Admin                Admin?              @relation(fields: [adminId], references: [id])
+  adminId              Int?
+  Ville                Ville?              @relation(fields: [villeId], references: [id])
+  villeId              Int?
+}
+
+model HeuresOuverture {
+  id           Int         @id @default(autoincrement())
+  jour         String
+  heures       String
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  restaurantId Int?
 }
 
 model Ville {
@@ -115,6 +126,7 @@ model Plats {
   description   String?
   prix          Float
   quantity      Int             @default(1)
+  ratings       Float           @default(0)
   createdAt     DateTime?       @default(now())
   updateAt      DateTime?       @updatedAt
   article       Article[]
@@ -128,17 +140,18 @@ model Plats {
 }
 
 model Commande {
-  id          Int        @id @default(autoincrement())
-  quantity    Int
-  prix        Float
-  User        User?      @relation(fields: [userId], references: [id])
-  userId      Int?
-  createdAt   DateTime?  @default(now())
-  updateAt    DateTime?  @updatedAt
-  Plats       Plats?     @relation(fields: [platsId], references: [id])
-  platsId     Int?
-  Livraison   Livraison? @relation(fields: [livraisonId], references: [id])
-  livraisonId Int?
+  id             Int        @id @default(autoincrement())
+  quantity       Int
+  prix           Float
+  recommandation String?
+  User           User?      @relation(fields: [userId], references: [id])
+  userId         Int?
+  createdAt      DateTime?  @default(now())
+  updateAt       DateTime?  @updatedAt
+  Plats          Plats?     @relation(fields: [platsId], references: [id])
+  platsId        Int?
+  Livraison      Livraison? @relation(fields: [livraisonId], references: [id])
+  livraisonId    Int?
 }
 
 model Article {
@@ -229,15 +242,14 @@ model slide {
 }
 
 model Geolocalisation {
-  id         Int          @id @default(autoincrement())
-  longitude  Float
-  latitude   Float
-  reatedAt   DateTime?    @default(now())
-  updateAt   DateTime?    @updatedAt
-  Admin      Admin?       @relation(fields: [adminId], references: [id])
-  adminId    Int?         @unique
-  Restaurant Restaurant[]
-  User User[]
+  id        Int       @id @default(autoincrement())
+  longitude Float
+  latitude  Float
+  reatedAt  DateTime? @default(now())
+  updateAt  DateTime? @updatedAt
+  Admin     Admin?    @relation(fields: [adminId], references: [id])
+  adminId   Int?      @unique
+  User      User[]
 }
 
 model Historique {

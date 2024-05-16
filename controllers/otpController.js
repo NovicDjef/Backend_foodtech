@@ -38,63 +38,78 @@ export default {
     },
 
     async addPhoneUserOTP(req, res){
-        try {
-            const userData = req.body.userData
-            const user = await User.create({ data: userData });
+        const {username, phone} = req.body;
+        try { 
+            const existingUser = await User.findUnique({
+                where: {
+                    phone,
+                },
+            });
+
+            if (existingUser) {
+                return res.status(400).json({ message: "Ce numéro de téléphone est déjà utilisé. Veuillez en choisir un autre." });
+            }
+
+            const newUser = await User.create({ 
+                data:{
+                    username, 
+                    phone
+                }});
             
-        const otpCode = generateOTP();
-              
-        // Création de l'OTP avec une référence à l'utilisateur créé
-        const result = await prisma.OTP.create({ 
-            data: { 
-                phone: userData.phone,
-                code: parseInt(otpCode),
-                user: { connect: { id: user.id } } 
-            } 
-        });
-        console.log("resultat  :", result);
-        res.status(200).json({
-            message: 'user & OTP and phone create success',
-            user,
-            result,
-        });
-        console.debug("eeeeeee : ", user)
+            const otpCode = generateOTP();
+        
+            // Enregistre le code OTP dans la base de données
+            const otpEntry = await prisma.OTP.create({
+              data: { 
+                phone, 
+                code: parseInt(otpCode), 
+                user: { connect: { id: newUser.id } } 
+            }
+            });
+        
+            // Envoie le code OTP à l'utilisateur (par SMS, par exemple)
+                console.log("code Otp Generé :", otpCode)
+            res.status(201).json({
+              message: "User created successfully",
+              user: newUser,
+              otpEntry
+            });
           } catch (error) {
-            console.log("erreirhnnndnd : ", error)
+            console.log("erreur : ", error)
             return handleServerError(res, error);
-          }
+          }    
     },
 
     async verifyOTP(req, res) {
-        const { phone, otpCode } = req.body;
-     
-        try {
-            const userOTP = await prisma.OTP.findFirst({
-                where: {
-                    phone: phone,
-                    code: parseInt(otpCode),
-                    expiredAt: { gte: new Date() } // Vérifiez si l'OTP n'est pas expiré
-                }
-            });
-            const codeSend = req.body.otpCode 
-            console.debug( "sendCode: ", codeSend,)
-            if (!userOTP) {
-                return res.status(400).json({ message: 'Invalid or expired OTP code' });
-            }
-            // Vérifiez si l'OTP entré par l'utilisateur correspond à celui stocké dans la base de données
-            if (userOTP.code !== codeSend) {
-                return res.status(400).json({ message: 'Incorrect OTP code' });
-            } else {
-                return res.status(200).json({ message: 'OTP code verified successfully' });
-            }
-    
-            
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: 'Something went wrong', error: error.message });
+      try {
+          const { phone, code } = req.body;
+         
+          if (!code) {
+            return res.status(400).json({ message: "Les informations nécessaires sont manquantes." });
+          }
+                const otpEntry = await prisma.OTP.findFirst({
+              where: { 
+                  phone, 
+                  code: parseInt(code)
+              }
+          });
+          console.debug("dddddd :", code )
+        if (!otpEntry || (otpEntry.code !== parseInt(code))) {
+           
+             const message = "Le code que vous avez entré est incorrect renseigner le code qui vous a été envoyé pas SMS" 
+             return res.status(400).json({ message: message})
+           
         }
-    }
-
+     
+          // Supprime l'entrée OTP après la vérification réussie
+          await prisma.OTP.delete({ where: { id: otpEntry.id } });
+      
+          res.status(200).json({ message: "Feleciation!! vous avez terminer votre incription profité des merveilles de TchopTchup" });
+      } catch (error) {
+          return handleServerError(res, error);
+      }
+  }
+  
     };
 
     function handleServerError(res, error) {

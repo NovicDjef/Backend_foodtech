@@ -26,6 +26,7 @@ export default {
     }
   },
 
+
   async getRestaurantById(req, res) {
     try {
       const id = parseInt(req.params.id);
@@ -52,8 +53,11 @@ export default {
       const restaurant = {
         nom: req.body.nom,
         phone: req.body.phone,
+        description: req.body.description,
         adresse: req.body.adresse,
         image: req.file.filename,
+        latitude: parseFloat(req.body.latitude),
+        longitude: parseFloat(req.body.longitude)
         // include: {
         //   plats: true,
         //   article: true,
@@ -96,8 +100,11 @@ export default {
       const restaurant = {
         nom: req.body.nom,
         phone: req.body.phone,
+        description: req.body.description,
         adresse: req.body.adresse,
         image: req.file.filename,
+        latitude: parseFloat(req.body.latitude),
+        longitude: parseFloat(req.body.longitude)
         // include: {
         //   plats: true,
         //   article: true,
