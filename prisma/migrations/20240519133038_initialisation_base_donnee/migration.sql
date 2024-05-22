@@ -45,6 +45,7 @@ CREATE TABLE "User" (
     "image" TEXT,
     "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3),
+    "geolocalisationId" INTEGER,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -62,26 +63,18 @@ CREATE TABLE "OTP" (
 );
 
 -- CreateTable
-CREATE TABLE "Categorie" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "image" TEXT NOT NULL,
-    "description" TEXT,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
-
-    CONSTRAINT "Categorie_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Restaurant" (
     "id" SERIAL NOT NULL,
-    "nom" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "phone" TEXT,
     "adresse" TEXT NOT NULL,
     "image" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "ratings" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3),
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
     "adminId" INTEGER,
     "villeId" INTEGER,
 
@@ -89,25 +82,59 @@ CREATE TABLE "Restaurant" (
 );
 
 -- CreateTable
+CREATE TABLE "HeuresOuverture" (
+    "id" SERIAL NOT NULL,
+    "jour" TEXT NOT NULL,
+    "heures" TEXT NOT NULL,
+    "restaurantId" INTEGER,
+
+    CONSTRAINT "HeuresOuverture_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Ville" (
     "id" SERIAL NOT NULL,
-    "nom" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
 
     CONSTRAINT "Ville_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
+CREATE TABLE "Menu" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "restaurantId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "updateAt" TIMESTAMP(3),
+
+    CONSTRAINT "Menu_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Categorie" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "image" TEXT NOT NULL,
+    "description" TEXT,
+    "menuId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "updateAt" TIMESTAMP(3),
+
+    CONSTRAINT "Categorie_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Plats" (
     "id" SERIAL NOT NULL,
-    "nom" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "image" TEXT NOT NULL,
     "description" TEXT,
     "prix" DOUBLE PRECISION NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
+    "ratings" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3),
-    "restaurantId" INTEGER,
-    "categorieId" INTEGER,
+    "categorieId" INTEGER NOT NULL,
 
     CONSTRAINT "Plats_pkey" PRIMARY KEY ("id")
 );
@@ -117,6 +144,7 @@ CREATE TABLE "Commande" (
     "id" SERIAL NOT NULL,
     "quantity" INTEGER NOT NULL,
     "prix" DOUBLE PRECISION NOT NULL,
+    "recommandation" TEXT,
     "userId" INTEGER,
     "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3),
@@ -204,13 +232,11 @@ CREATE TABLE "slide" (
 -- CreateTable
 CREATE TABLE "Geolocalisation" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER,
     "longitude" DOUBLE PRECISION NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "reatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3),
     "adminId" INTEGER,
-    "restaurantId" INTEGER,
 
     CONSTRAINT "Geolocalisation_pkey" PRIMARY KEY ("id")
 );
@@ -220,7 +246,7 @@ CREATE TABLE "Historique" (
     "id" SERIAL NOT NULL,
     "statut" TEXT NOT NULL,
     "reatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
+    "updateAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "userId" INTEGER,
 
     CONSTRAINT "Historique_pkey" PRIMARY KEY ("id")
@@ -229,7 +255,7 @@ CREATE TABLE "Historique" (
 -- CreateTable
 CREATE TABLE "ServiceLivraison" (
     "id" SERIAL NOT NULL,
-    "nom" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "frais" DOUBLE PRECISION NOT NULL,
 
@@ -263,13 +289,7 @@ CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 CREATE UNIQUE INDEX "OTP_userId_key" ON "OTP"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Geolocalisation_userId_key" ON "Geolocalisation"("userId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Geolocalisation_adminId_key" ON "Geolocalisation"("adminId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Geolocalisation_restaurantId_key" ON "Geolocalisation"("restaurantId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "_FavoritePlatsToPlats_AB_unique" ON "_FavoritePlatsToPlats"("A", "B");
@@ -284,6 +304,9 @@ ALTER TABLE "User_role" ADD CONSTRAINT "User_role_adminId_fkey" FOREIGN KEY ("ad
 ALTER TABLE "User_role" ADD CONSTRAINT "User_role_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_geolocalisationId_fkey" FOREIGN KEY ("geolocalisationId") REFERENCES "Geolocalisation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "OTP" ADD CONSTRAINT "OTP_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -293,10 +316,16 @@ ALTER TABLE "Restaurant" ADD CONSTRAINT "Restaurant_adminId_fkey" FOREIGN KEY ("
 ALTER TABLE "Restaurant" ADD CONSTRAINT "Restaurant_villeId_fkey" FOREIGN KEY ("villeId") REFERENCES "Ville"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Plats" ADD CONSTRAINT "Plats_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "HeuresOuverture" ADD CONSTRAINT "HeuresOuverture_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Plats" ADD CONSTRAINT "Plats_categorieId_fkey" FOREIGN KEY ("categorieId") REFERENCES "Categorie"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Menu" ADD CONSTRAINT "Menu_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Categorie" ADD CONSTRAINT "Categorie_menuId_fkey" FOREIGN KEY ("menuId") REFERENCES "Menu"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Plats" ADD CONSTRAINT "Plats_categorieId_fkey" FOREIGN KEY ("categorieId") REFERENCES "Categorie"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Commande" ADD CONSTRAINT "Commande_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -335,13 +364,7 @@ ALTER TABLE "Reservation" ADD CONSTRAINT "Reservation_restaurantId_fkey" FOREIGN
 ALTER TABLE "Payement" ADD CONSTRAINT "Payement_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Geolocalisation" ADD CONSTRAINT "Geolocalisation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Geolocalisation" ADD CONSTRAINT "Geolocalisation_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Admin"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Geolocalisation" ADD CONSTRAINT "Geolocalisation_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Historique" ADD CONSTRAINT "Historique_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

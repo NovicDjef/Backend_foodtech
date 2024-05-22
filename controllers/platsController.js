@@ -53,16 +53,19 @@ export default {
   async addPlats(req, res) {
     try {
       const plats = {
-        nom: req.body.nom,
+        name: req.body.name,
         image: req.file.filename,
         description: req.body.description,
         prix: parseInt(req.body.prix),
-        include: {
-          commande: true,
-          article: true,
-          note: true,
-          favoritePlats: true
-        }
+        ratings: parseInt(req.body.ratings),
+        quantity: parseInt(req.body.quantity),
+        categorieId: parseInt(req.body.categorieId)
+        // include: {
+        //   commande: true,
+        //   article: true,
+        //   note: true,
+        //   favoritePlats: true
+        // }
       };
       console.log(plats)
       const result = await Plats.create({ data: plats });
@@ -79,10 +82,11 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const plats = {
-        nom: req.body.nom,
+        name: req.body.name,
         image: req.file.filename,
         description: req.body.description,
         prix: parseInt(req.body.prix),
+        ratings: parseInt(req.body.ratings),
         // include: {
         //   commande: true,
         //   article: true,
@@ -123,6 +127,8 @@ export default {
       await handleServerError(res, error);
     }
   },
+
+  
 };
 
 async function handleServerError(res, error) {

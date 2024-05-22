@@ -38,7 +38,7 @@ export default {
   async addVille(req, res) {
     try {
       const ville = {
-        nom: req.body.nom,
+        name: req.body.name,
       };
       const result = await Ville.create({ data: ville });
       res.status(200).json({
@@ -67,7 +67,7 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const ville = {
-        nom: req.body.nom,
+        name: req.body.name,
       };
       const updatedVille = await Ville.update({ where: { id }, data: ville });
       res.status(201).json({

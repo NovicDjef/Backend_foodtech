@@ -11,9 +11,10 @@ export default {
     try {
       const data = await Restaurant.findMany({
         include: {
-          plats: true,
           article: true,
           reservation: true,
+          menus: true,
+          heuresOuverture: true
         }
       });
       if (data) {
@@ -51,11 +52,12 @@ export default {
   async addRestaurant(req, res) {
     try {
       const restaurant = {
-        nom: req.body.nom,
+        name: req.body.name,
         phone: req.body.phone,
         description: req.body.description,
         adresse: req.body.adresse,
         image: req.file.filename,
+        ratings: parseInt(req.body.ratings),
         latitude: parseFloat(req.body.latitude),
         longitude: parseFloat(req.body.longitude)
         // include: {
@@ -98,11 +100,12 @@ export default {
     try {
       const id = parseInt(req.params.id);
       const restaurant = {
-        nom: req.body.nom,
+        name: req.body.name,
         phone: req.body.phone,
         description: req.body.description,
         adresse: req.body.adresse,
         image: req.file.filename,
+        ratings: parseInt(req.body.ratings),
         latitude: parseFloat(req.body.latitude),
         longitude: parseFloat(req.body.longitude)
         // include: {

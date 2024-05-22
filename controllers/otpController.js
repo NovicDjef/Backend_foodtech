@@ -108,7 +108,24 @@ export default {
       } catch (error) {
           return handleServerError(res, error);
       }
-  }
+  },
+  async updateUser(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const user = {
+        username: req.body.username,
+        phone: req.body.phone,
+      };
+      console.log("user :", user)
+      const result = await User.update({ data: user, where: { id } });
+      res.status(201).json({
+        message: 'user update success',
+        result,
+      });
+    } catch (error) {
+      await handleServerError(res, error);
+    }
+  },
   
     };
 

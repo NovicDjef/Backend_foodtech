@@ -49,6 +49,7 @@ export default {
         name: req.body.name,
         image: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
         description: req.body.description,
+        menuId: parseInt(req.body.menuId), 
         // restaurantId: req.body.restaurantId,
         // include: {
         //   plats: true
@@ -87,8 +88,8 @@ export default {
       const categorie = {
         name: req.body.name,
         image: req.file.filename, 
-        description: req.body.description,   
-        // restaurantId: req.body.restaurantId,
+        description: req.body.description, 
+        menuId: parseInt(req.body.menuId),  
         // include: {
         //   plats: true,
         // }

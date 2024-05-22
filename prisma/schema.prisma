@@ -73,36 +73,26 @@ model OTP {
   @@unique([userId])
 }
 
-model Categorie {
-  id          Int       @id @default(autoincrement())
-  name        String
-  image       String
-  plats       Plats[]
-  description String?
-  createdAt   DateTime? @default(now())
-  updateAt    DateTime? @updatedAt
-}
-
 model Restaurant {
-  id                   Int                 @id @default(autoincrement())
-  nom                  String
-  phone                String?
-  adresse              String
-  image                String
-  description          String
-  ratings              Float               @default(0)
-  createdAt            DateTime?           @default(now())
-  updateAt             DateTime?           @updatedAt
-  latitude             Float
-  longitude            Float
-  plats                Plats[]
-  article              Article[]
-  reservation          Reservation[]
-  heuresOuverture      HeuresOuverture[]
-  Admin                Admin?              @relation(fields: [adminId], references: [id])
-  adminId              Int?
-  Ville                Ville?              @relation(fields: [villeId], references: [id])
-  villeId              Int?
+  id              Int               @id @default(autoincrement())
+  name            String
+  phone           String?
+  adresse         String
+  image           String
+  description     String
+  ratings         Float             @default(0)
+  createdAt       DateTime?         @default(now())
+  updateAt        DateTime?         @updatedAt
+  latitude        Float
+  longitude       Float
+  menus           Menu[]
+  article         Article[]
+  reservation     Reservation[]
+  heuresOuverture HeuresOuverture[]
+  Admin           Admin?            @relation(fields: [adminId], references: [id])
+  adminId         Int?
+  Ville           Ville?            @relation(fields: [villeId], references: [id])
+  villeId         Int?
 }
 
 model HeuresOuverture {
@@ -115,13 +105,35 @@ model HeuresOuverture {
 
 model Ville {
   id         Int          @id @default(autoincrement())
-  nom        String
+  name       String
   restaurant Restaurant[]
+}
+
+model Menu {
+  id           Int         @id @default(autoincrement())
+  name         String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurantId Int
+  categories   Categorie[]
+  createdAt    DateTime?   @default(now())
+  updateAt     DateTime?   @updatedAt
+}
+
+model Categorie {
+  id          Int       @id @default(autoincrement())
+  name        String
+  image       String
+  plats       Plats[]
+  description String?
+  menu        Menu?     @relation(fields: [menuId], references: [id])
+  menuId      Int?
+  createdAt   DateTime? @default(now())
+  updateAt    DateTime? @updatedAt
 }
 
 model Plats {
   id            Int             @id @default(autoincrement())
-  nom           String
+  name          String
   image         String
   description   String?
   prix          Float
@@ -131,8 +143,6 @@ model Plats {
   updateAt      DateTime?       @updatedAt
   article       Article[]
   note          Note[]
-  Restaurant    Restaurant?     @relation(fields: [restaurantId], references: [id])
-  restaurantId  Int?
   Categorie     Categorie?      @relation(fields: [categorieId], references: [id])
   categorieId   Int?
   commande      Commande[]
@@ -144,6 +154,7 @@ model Commande {
   quantity       Int
   prix           Float
   recommandation String?
+  position       String
   User           User?      @relation(fields: [userId], references: [id])
   userId         Int?
   createdAt      DateTime?  @default(now())
@@ -256,14 +267,14 @@ model Historique {
   id       Int       @id @default(autoincrement())
   statut   String
   reatedAt DateTime? @default(now())
-  updateAt DateTime? @updatedAt
+  updateAt DateTime? @default(now())
   User     User?     @relation(fields: [userId], references: [id])
   userId   Int?
 }
 
 model ServiceLivraison {
   id          Int         @id @default(autoincrement())
-  nom         String
+  name        String
   description String
   frais       Float
   livraison   Livraison[]

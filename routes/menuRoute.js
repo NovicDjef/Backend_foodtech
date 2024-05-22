@@ -4,7 +4,7 @@ import express from 'express'
 
 const router = express.Router()
 
-router.get('/menus', menuController.getAllMenu)
+router.get('/menus', menuController.getAllMenus)
 router.get('/menu/:id', menuController.getMenuById)
 router.post('/menu', upload.single('image'), menuController.addMenu)
 router.patch('/menu/:id', menuController.updateMenu)
