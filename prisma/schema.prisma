@@ -62,13 +62,15 @@ model User {
 }
 
 model OTP {
-  id        Int      @id @default(autoincrement())
-  phone     String
-  code      Int
-  createdAt DateTime @default(now())
-  expiredAt DateTime @default(dbgenerated("CURRENT_TIMESTAMP + interval '5 minute'"))
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
+  id              Int      @id @default(autoincrement())
+  phone           String
+  code            Int?
+  verificationSid String // Ajout du SID de vérification de Twilio
+  status          String // Ajout du statut de la vérification
+  createdAt       DateTime @default(now())
+  expiredAt       DateTime @default(dbgenerated("CURRENT_TIMESTAMP + interval '5 minute'"))
+  user            User     @relation(fields: [userId], references: [id])
+  userId          Int
 
   @@unique([userId])
 }
@@ -106,6 +108,8 @@ model HeuresOuverture {
 model Ville {
   id         Int          @id @default(autoincrement())
   name       String
+  longitude  Float?
+  latitude   Float?
   restaurant Restaurant[]
 }
 
@@ -163,6 +167,7 @@ model Commande {
   platsId        Int?
   Livraison      Livraison? @relation(fields: [livraisonId], references: [id])
   livraisonId    Int?
+  Payement       Payement[]
 }
 
 model Article {
@@ -230,13 +235,21 @@ model Reservation {
 }
 
 model Payement {
-  id            Int           @id @default(autoincrement())
-  montant       Int
-  mode_payement Mode_payement @default(MOBILE_MONEY)
-  datPayement   DateTime?     @default(now())
-  updateAt      DateTime?     @updatedAt
-  User          User?         @relation(fields: [userId], references: [id])
-  userId        Int?
+  id                Int      @id @default(autoincrement())
+  amount            Int
+  mode_payement     String
+  currency          String
+  status            String
+  reference         String
+  phone             String
+  email             String?
+  authorization_url String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  User              User?    @relation(fields: [userId], references: [id])
+  userId            Int?
+  commandeId        Int
+  Commande          Commande @relation(fields: [commandeId], references: [id])
 }
 
 enum Mode_payement {

@@ -88,10 +88,11 @@ async addCommande(req, res) {
         prix: commandeData.prix,
         recommandation: commandeData.recommandation,
         userId: commandeData.userId,
-        platsId: commandeData.platsId
+        platsId: commandeData.platsId,
+        position: commandeData.position
       };
       const result = await Commande.create({ data: commande });
-      console.log("Commande ajoutée :", commande);
+      console.log("Commande ajoutée :", result, commande);
       return result;    
               
     }));
@@ -125,9 +126,12 @@ async addCommande(req, res) {
     try {
       const id = parseInt(req.params.id);
       const commande = {
-        quantity: req.body.quantity,
-        recommandation: req.body.recommandation,
-        prix: req.body.prix,
+        quantity: commandeData.quantity,
+        prix: commandeData.prix,
+        recommandation: commandeData.recommandation,
+        userId: commandeData.userId,
+        platsId: commandeData.platsId,
+        position: commandeData.position
       };
       const result = await Commande.update({ data: commande, where: { id } });
       res.status(201).json({

@@ -1,8 +1,17 @@
 import pkg from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import twilio from 'twilio';
+import dotenv from 'dotenv';
+
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
+
+dotenv.config();
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+
 
 //const { otp: OTP } = prisma;
 const { user: User } = prisma;
@@ -39,10 +48,11 @@ export default {
 
     async addPhoneUserOTP(req, res){
         const {username, phone} = req.body;
+        const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
         try { 
             const existingUser = await User.findUnique({
                 where: {
-                    phone,
+                  phone: formattedPhone,
                 },
             });
 
@@ -53,26 +63,35 @@ export default {
             const newUser = await User.create({ 
                 data:{
                     username, 
-                    phone
+                    phone: formattedPhone,
                 }});
             
-            const otpCode = generateOTP();
         
-            // Enregistre le code OTP dans la base de données
-            const otpEntry = await prisma.OTP.create({
-              data: { 
-                phone, 
-                code: parseInt(otpCode), 
-                user: { connect: { id: newUser.id } } 
-            }
-            });
-        
-            // Envoie le code OTP à l'utilisateur (par SMS, par exemple)
-                console.log("code Otp Generé :", otpCode)
+           // Envoyer le code OTP via Twilio Verify
+      const verification = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+      .verifications
+      .create({ to: formattedPhone, channel: 'sms' });
+
+      console.log("verification :", verification)
+
+    // Enregistrer la réponse de vérification dans la base de données
+    const otpEntry = await prisma.OTP.create({
+      data: {
+        phone: formattedPhone,
+        verificationSid: verification.sid, // Enregistrer le SID de vérification Twilio
+        status: verification.status, // Enregistrer le statut de la vérification
+        user: {connect: { id: newUser.id }}, 
+        createdAt: new Date(),
+        expiredAt: new Date(Date.now() + 60 * 60 * 1000) // Expire après 1 heure
+              
+      },
+    });
+    console.log("otpEntry :", otpEntry)
             res.status(201).json({
               message: "User created successfully",
               user: newUser,
-              otpEntry
+              otpEntry,
+              verificationDetails: verification,
             });
           } catch (error) {
             console.log("erreur : ", error)
@@ -83,32 +102,82 @@ export default {
     async verifyOTP(req, res) {
       try {
           const { phone, code } = req.body;
-         
-          if (!code) {
-            return res.status(400).json({ message: "Les informations nécessaires sont manquantes." });
-          }
+               // Vérification des paramètres
+        if (!phone || !code) {
+          return res.status(400).json({ success: false, message: "Le numéro de téléphone et le code OTP sont requis." });
+      }
+          const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
+
                 const otpEntry = await prisma.OTP.findFirst({
               where: { 
-                  phone, 
-                  code: parseInt(code)
-              }
+                  phone: formattedPhone,
+              },
+              orderBy: {
+                createdAt: 'desc',
+            },
           });
-          console.debug("dddddd :", code )
-        if (!otpEntry || (otpEntry.code !== parseInt(code))) {
-           
-             const message = "Le code que vous avez entré est incorrect renseigner le code qui vous a été envoyé pas SMS" 
-             return res.status(400).json({ message: message})
-           
+
+          if (!otpEntry) {
+            return res.status(404).json({ success: false, message: "Aucune entrée OTP trouvée pour cet utilisateur." });
         }
-     
-          // Supprime l'entrée OTP après la vérification réussie
-          await prisma.OTP.delete({ where: { id: otpEntry.id } });
-      
-          res.status(200).json({ message: "Feleciation!! vous avez terminer votre incription profité des merveilles de TchopTchup" });
+
+          const verificationCheck = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+            .verificationChecks
+            .create({ to: formattedPhone, code });
+
+        if (verificationCheck.status === 'approved') {
+            // Mettre à jour le statut de vérification dans la base de données
+            await prisma.OTP.update({
+                where: { id: otpEntry.id },
+                data: { status: 'approved' },
+            });
+            return res.status(200).json({ success: true, message: "Code OTP vérifié avec succès." });
+          } else {
+              return res.status(400).json({ success: false, message: "Le code OTP est incorrect." });
+          }
       } catch (error) {
+        console.error("Erreur lors de la vérification du code OTP :", error);
           return handleServerError(res, error);
       }
   },
+ 
+  // async verifyOTP(req, res) {
+  //   try {
+  //     const { phone, code } = req.body;
+  
+  //     if (!phone || !code) {
+  //       return res.status(400).json({ message: "Les informations nécessaires sont manquantes." });
+  //     }
+  
+  //     const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
+  
+  //     const otpEntry = await prisma.oTP.findFirst({
+  //       where: {
+  //         phone: formattedPhone,
+  //       },
+  //     });
+  
+  //     if (!otpEntry) {
+  //       return res.status(400).json({ message: "Le code que vous avez entré est incorrect. Veuillez renseigner le code qui vous a été envoyé par SMS." });
+  //     }
+  
+  //     const verificationCheck = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+  //       .verificationChecks
+  //       .create({ to: formattedPhone, code });
+  
+  //     if (verificationCheck.status !== 'approved') {
+  //       return res.status(400).json({ message: "Le code que vous avez entré est incorrect. Veuillez renseigner le code qui vous a été envoyé par SMS." });
+  //     }
+  
+  //     await prisma.oTP.delete({ where: { id: otpEntry.id } });
+  
+  //     res.status(200).json({ message: "Félicitations ! Vous avez terminé votre inscription, profitez des merveilles de TchopTchup." });
+  //   } catch (error) {
+  //     console.error("Erreur :", error);
+  //     res.status(500).json({ message: "Erreur du serveur", error: error.message });
+  //   }
+  // },
+  
   async updateUser(req, res) {
     try {
       const id = parseInt(req.params.id);
@@ -134,15 +203,15 @@ export default {
     return res.status(500).json({ message: 'Something went wrong', error: error });
     }
 
-    function generateOTP() {
-    const otpLength = 5; // Longueur du code OTP
-    const digits = '0123456789'; // Caractères autorisés pour le code OTP
-    let code = '';
-    for (let i = 0; i < otpLength; i++) {
-        code += digits[Math.floor(Math.random() * 10)]; // Sélection aléatoire d'un chiffre
-    }
-    return code;
-    }
+    // function generateOTP() {
+    // const otpLength = 5; // Longueur du code OTP
+    // const digits = '0123456789'; // Caractères autorisés pour le code OTP
+    // let code = '';
+    // for (let i = 0; i < otpLength; i++) {
+    //     code += digits[Math.floor(Math.random() * 10)]; // Sélection aléatoire d'un chiffre
+    // }
+    // return code;
+    // }
     // function isValidPhoneNumber(phone) {
     //     const phoneRegex = /^[0-9]{9}$/;
     //     return phoneRegex.test(phone);

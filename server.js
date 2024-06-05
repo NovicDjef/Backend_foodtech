@@ -1,4 +1,7 @@
 import express from 'express'
+import dotenv from 'dotenv';
+import bodyParser from "body-parser"
+
 import cors from 'cors'
 import multer from 'multer'
 import userRoute from './routes/userRoute.js'
@@ -23,9 +26,9 @@ import heureOuveruteRoute from "./routes/heureOuveruteRoute.js"
 
 const server = express()
 server.use(express.json())
-server.use(express.urlencoded({ extended: false }))
+server.use(express.urlencoded({ extended: true }))
 server.use(cors())
-
+dotenv.config();
 
 // server.use((req, res, next) => {
 //     res.setHeader('Access-Controll-Allow-Origin', '*')
