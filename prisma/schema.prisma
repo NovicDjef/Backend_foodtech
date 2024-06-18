@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -64,9 +64,9 @@ model User {
 model OTP {
   id        Int      @id @default(autoincrement())
   phone     String
-  code      Int
-  createdAt DateTime @default(now())
-  expiredAt DateTime @default(dbgenerated("CURRENT_TIMESTAMP + interval '5 minute'"))
+  code          Int
+  createdAt       DateTime?         @default(now())
+  updateAt        DateTime?         @updatedAt
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
 
@@ -169,7 +169,7 @@ model Article {
   id           Int         @id @default(autoincrement())
   titre        String
   content      String?
-  reatedAt     DateTime?   @default(now())
+  createdAt    DateTime?   @default(now())
   updateAt     DateTime?   @updatedAt
   User         User?       @relation(fields: [userId], references: [id])
   userId       Int?
@@ -199,7 +199,7 @@ enum Statut {
 model Note {
   id       Int       @id @default(autoincrement())
   notation Notation  @default(ZERO)
-  reatedAt DateTime? @default(now())
+  createdAt DateTime? @default(now())
   updateAt DateTime? @updatedAt
   User     User?     @relation(fields: [userId], references: [id])
   userId   Int?
@@ -221,7 +221,7 @@ model Reservation {
   numero_table     String?
   nombre_personne  Int
   prix_reservation Float
-  reatedAt         DateTime?   @default(now())
+  createdAt        DateTime?   @default(now())
   updateAt         DateTime?   @updatedAt
   User             User?       @relation(fields: [userId], references: [id])
   userId           Int?
@@ -233,7 +233,7 @@ model Payement {
   id            Int           @id @default(autoincrement())
   montant       Int
   mode_payement Mode_payement @default(MOBILE_MONEY)
-  datPayement   DateTime?     @default(now())
+  createdAt     DateTime?     @default(now())
   updateAt      DateTime?     @updatedAt
   User          User?         @relation(fields: [userId], references: [id])
   userId        Int?
@@ -248,7 +248,7 @@ model slide {
   id       Int       @id @default(autoincrement())
   name     String
   image    String
-  reatedAt DateTime? @default(now())
+  createdAt DateTime? @default(now())
   updateAt DateTime? @updatedAt
 }
 
@@ -256,7 +256,7 @@ model Geolocalisation {
   id        Int       @id @default(autoincrement())
   longitude Float
   latitude  Float
-  reatedAt  DateTime? @default(now())
+  createdAt DateTime? @default(now())
   updateAt  DateTime? @updatedAt
   Admin     Admin?    @relation(fields: [adminId], references: [id])
   adminId   Int?      @unique
@@ -266,7 +266,7 @@ model Geolocalisation {
 model Historique {
   id       Int       @id @default(autoincrement())
   statut   String
-  reatedAt DateTime? @default(now())
+  createdAt DateTime? @default(now())
   updateAt DateTime? @default(now())
   User     User?     @relation(fields: [userId], references: [id])
   userId   Int?
