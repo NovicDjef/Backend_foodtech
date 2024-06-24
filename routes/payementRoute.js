@@ -9,5 +9,6 @@ router.post('/payement', payementController.addPayement);
 router.patch('/payement/:id', payementController.updatePayement);
 router.delete('/payement/:id', payementController.deletePayement);
 router.post('/notchpay', payementController.handleWebhook);
+router.post('/notchpay/:reference', payementController.handleWebhookreference);
 
 export default router;

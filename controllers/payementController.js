@@ -104,7 +104,7 @@ export default {
         commandeId: parseInt(commandeId),
         phone,
         status: 'pending',
-        reference: uniqueReference,
+        reference: transaction.reference,
         authorization_url,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -127,80 +127,6 @@ export default {
       });
     }
   },
-    // async addPayement(req, res) {
-    //   try {
-    //     const { amount, mode_payement, currency, userId, commandeId, phone, email, description } = req.body;
-  
-    //     console.log('Request Body:', req.body);
-  
-    //     if (!amount || isNaN(amount)) {
-    //       return res.status(400).json({ message: 'Invalid amount' });
-    //     }
-  
-    //     if (!mode_payement) {
-    //       return res.status(400).json({ message: 'Mode de paiement manquant' });
-    //     }
-  
-    //     function generateUniqueReference() {
-    //       return 'ref_' + new Date().getTime();
-    //     }
-    //     const uniqueReference = generateUniqueReference();
-    //     console.log(uniqueReference);
-  
-    //     const formData = new FormData();
-    //     formData.append('amount', amount);
-    //     formData.append('mode_payement', mode_payement);
-    //     formData.append('currency', currency);
-    //     formData.append('userId', userId);
-    //     formData.append('commandeId', commandeId);
-    //     formData.append('phone', phone);
-    //     formData.append('email', email);
-    //     formData.append('description', description);
-  
-    //     // Initiate payement with Notch Pay API
-    //     const payementResponse = await axios.post('https://api.notchpay.co/payements/initialize', formData, {
-    //       headers: {
-    //         'Authorization': 'pk_test.Dn2dsCpu8kkdJ6KSR01jyx54ycWKeNp0rMjjLrYFUh6qZKloKVzqcakJFHuEaGtzwMWbnwZbxaimaCnPGQVs2FELVFVlVlklBGjWvLV7eKpaejX8iP3gm2Q58KvCf',
-    //         'Accept': 'application/json',
-    //         ...formData.getHeaders()
-    //       }
-    //     });
-  
-    //     const { transaction, authorization_url } = payementResponse.data;
-  
-    //     const payement = {
-    //       amount: parseInt(amount),
-    //       mode_payement: mode_payement,
-    //       currency: currency,
-    //       userId: parseInt(userId),
-    //       commandeId: parseInt(commandeId),
-    //       phone: phone,
-    //       email: email,
-    //       status: 'pending',
-    //       description: description,
-    //       reference: uniqueReference
-    //     };
-  
-    //     const result = await Payement.create(payement);
-  
-    //     console.log("Authorization URL:", authorization_url);
-  
-    //     res.status(201).json({
-    //       status: "Accepted",
-    //       message: "Payement initialized",
-    //       code: 201,
-    //       transaction,
-    //       authorization_url
-    //     });
-    //   } catch (error) {
-    //     console.error('Error initiating payement:', error.response?.data || error.message);
-    //     res.status(error.response?.status || 500).json({
-    //       message: 'Something went wrong',
-    //       error: error.response?.data || error.message
-    //     });
-    //   }
-    // },
-
 
   async deletePayement(req, res) {
     try {
@@ -251,6 +177,7 @@ export default {
       await handleServerError(res, error);
     }
   },
+
 async handleWebhook(req, res) {
     try {
         const { event, data } = req.body;
@@ -263,7 +190,7 @@ async handleWebhook(req, res) {
             return res.status(400).json({ message: 'Invalid webhook data' });
         }
 
-        const payment = await Payement.findUnique({ where: { transaction_id: data.id } });
+        const payment = await Payement.findUnique({ where: { reference: data.reference } });
 
         console.log('Found Payment:', payment);
 
@@ -273,21 +200,26 @@ async handleWebhook(req, res) {
         }
 
         let statusToUpdate;
-        if (event === 'payment.success') {
-            statusToUpdate = 'complete';
-        } else if (event === 'payment.failed') {
-            statusToUpdate = 'failed';
-        } else if (event === 'payment.expired') {
-            statusToUpdate = 'expired';
-        } else {
-            console.log('Unknown event:', event);
-            return res.status(400).json({ message: 'Unknown event' });
+        switch (event) {
+            case 'payment.success':
+            case 'payment.complete':
+                statusToUpdate = 'complete';
+                break;
+            case 'payment.failed':
+                statusToUpdate = 'failed';
+                break;
+            case 'payment.expired':
+                statusToUpdate = 'expired';
+                break;
+            default:
+                console.log('Unknown event:', event);
+                return res.status(400).json({ message: 'Unknown event' });
         }
 
         console.log('Updating payment status to:', statusToUpdate);
 
         const updatedPayment = await Payement.update({
-            where: { transaction_id: data.id },
+            where: { reference: data.reference },
             data: { status: statusToUpdate }
         });
 
@@ -298,7 +230,24 @@ async handleWebhook(req, res) {
         console.error('Error handling webhook:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
+},
+
+async handleWebhookreference(req, res) {
+  try {
+      const { reference } = req.params;
+      const payment = await Payement.findUnique({ where: { reference } });
+      console.log(`status :`, payment)
+      if (!payment) {
+          return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      res.status(200).json({ status: payment.status, reference: payment.reference });
+  } catch (error) {
+      console.error('Error fetching payment status:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
+  }
 }
+
 
 }
 

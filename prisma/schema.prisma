@@ -240,7 +240,7 @@ model Payement {
   mode_payement     String
   currency          String
   status            String
-  reference         String
+  reference         String @unique
   phone             String
   email             String?
   authorization_url String
@@ -255,6 +255,10 @@ model Payement {
 enum Mode_payement {
   MOBILE_MONEY
   CARTE_BANCAIRE
+}
+model PrixLivraison {
+  id         Int    @id @default(autoincrement())
+  prix       Float
 }
 
 model slide {
