@@ -13,7 +13,7 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 
 
 
-//const { otp: OTP } = prisma;
+const { otp: OTP } = prisma;
 const { user: User } = prisma;
 export default {
 
@@ -46,101 +46,91 @@ export default {
         }
     },
 
-    async addPhoneUserOTP(req, res){
-        const {username, phone} = req.body;
-        const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
-        try { 
-            const existingUser = await User.findUnique({
-                where: {
-                  phone: formattedPhone,
-                },
-            });
-
-            if (existingUser) {
-                return res.status(400).json({ message: "Ce numéro de téléphone est déjà utilisé. Veuillez en choisir un autre." });
-            }
-
-            const newUser = await User.create({ 
-                data:{
-                    username, 
-                    phone: formattedPhone,
-                }});
-            
-        
-           // Envoyer le code OTP via Twilio Verify
-      const verification = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
-      .verifications
-      .create({ to: formattedPhone, channel: 'sms' });
-
-      console.log("verification :", verification)
-
-    // Enregistrer la réponse de vérification dans la base de données
-    const otpEntry = await prisma.OTP.create({
-      data: {
-        phone: formattedPhone,
-        verificationSid: verification.sid, // Enregistrer le SID de vérification Twilio
-        status: verification.status, // Enregistrer le statut de la vérification
-        user: {connect: { id: newUser.id }}, 
-        createdAt: new Date(),
-        expiredAt: new Date(Date.now() + 60 * 60 * 1000) // Expire après 1 heure
-              
-      },
-    });
-    console.log("otpEntry :", otpEntry)
-            res.status(201).json({
-              message: "User created successfully",
-              user: newUser,
-              otpEntry,
-              verificationDetails: verification,
-            });
-          } catch (error) {
-            console.log("erreur : ", error)
-            return handleServerError(res, error);
-          }    
-    },
-
-    async verifyOTP(req, res) {
+    async addPhoneUserOTP(req, res) {
+      const { username, phone } = req.body;
+      const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
       try {
-          const { phone, code } = req.body;
-               // Vérification des paramètres
-        if (!phone || !code) {
-          return res.status(400).json({ success: false, message: "Le numéro de téléphone et le code OTP sont requis." });
-      }
-          const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
-
-                const otpEntry = await prisma.OTP.findFirst({
-              where: { 
-                  phone: formattedPhone,
-              },
-              orderBy: {
-                createdAt: 'desc',
-            },
-          });
-
-          if (!otpEntry) {
-            return res.status(404).json({ success: false, message: "Aucune entrée OTP trouvée pour cet utilisateur." });
+        const existingUser = await User.findUnique({
+          where: {
+            phone: formattedPhone,
+          },
+        });
+  
+        if (existingUser) {
+          return res.status(400).json({ message: "Ce numéro de téléphone est déjà utilisé. Veuillez en choisir un autre." });
         }
-
-          const verificationCheck = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
-            .verificationChecks
-            .create({ to: formattedPhone, code });
-
+  
+        const newUser = await User.create({ 
+          data: {
+            username, 
+            phone: formattedPhone,
+          },
+        });
+  
+        const verification = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+          .verifications
+          .create({ to: formattedPhone, channel: 'sms' });
+  
+        const otpEntry = await OTP.create({
+          data: {
+            phone: formattedPhone,
+            verificationSid: verification.sid,
+            status: verification.status,
+            user: { connect: { id: newUser.id } },
+            createdAt: new Date(),
+            expiredAt: new Date(Date.now() + 60 * 60 * 1000),
+          },
+        });
+  
+        res.status(201).json({
+          message: "User created successfully",
+          user: newUser,
+          otpEntry,
+          verificationDetails: verification,
+        });
+      } catch (error) {
+        console.error("erreur : ", error);
+        return handleServerError(res, error);
+      }    
+    },
+  
+    async verifyOTP(req, res) {
+      const { phone, code } = req.body;
+      if (!phone || !code) {
+        return res.status(400).json({ success: false, message: "Le numéro de téléphone et le code OTP sont requis." });
+      }
+      const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
+  
+      try {
+        const otpEntry = await OTP.findFirst({
+          where: { phone: formattedPhone },
+          orderBy: { createdAt: 'desc' },
+        });
+  
+        if (!otpEntry) {
+          return res.status(404).json({ success: false, message: "Aucune entrée OTP trouvée pour cet utilisateur." });
+        }
+  
+        const verificationCheck = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+          .verificationChecks
+          .create({ to: formattedPhone, code });
+  
         if (verificationCheck.status === 'approved') {
-            // Mettre à jour le statut de vérification dans la base de données
-            await prisma.OTP.update({
-                where: { id: otpEntry.id },
-                data: { status: 'approved' },
-            });
-            return res.status(200).json({ success: true, message: "Code OTP vérifié avec succès." });
-          } else {
-              return res.status(400).json({ success: false, message: "Le code OTP est incorrect." });
-          }
+          await OTP.update({
+            where: { id: otpEntry.id },
+            data: { status: 'approved' },
+          });
+          return res.status(200).json({ success: true, message: "Code OTP vérifié avec succès." });
+        } else {
+          return res.status(400).json({ success: false, message: "Le code OTP est incorrect." });
+        }
       } catch (error) {
         console.error("Erreur lors de la vérification du code OTP :", error);
-          return handleServerError(res, error);
+        return handleServerError(res, error);
       }
-  },
- 
+    },
+  
+  
   // async verifyOTP(req, res) {
   //   try {
   //     const { phone, code } = req.body;
