@@ -12,10 +12,10 @@ export default {
     try {
       const data = await Plats.findMany({
         include: {
-          commande: true,
-          article: true,
-          note: true,
-          favoritePlats: true
+          // commande: true,
+          // article: true,
+          // note: true,
+          // favoritePlats: true
         }
       });
       if (data.length > 0) {

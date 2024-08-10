@@ -97,15 +97,15 @@ export default {
   async getAllUser(req, res) {
     try {
       const data = await User.findMany({
-        include: {
-          note: true,
-          article: true,
-          reservation: true,
-          payement: true,
-          favoritePlats: true,
-          commande: true,
-          historique: true
-        }
+        // include: {
+        //   note: true,
+        //   article: true,
+        //   reservation: true,
+        //   payement: true,
+        //   favoritePlats: true,
+        //   commande: true,
+        //   historique: true
+        // }
       });
 
       if (data.length > 0) {
@@ -124,16 +124,17 @@ export default {
     try {
       const data = await User.findUnique({ 
         where: { id },
-        include: {
-          note: true,
-          Article: true,
-          reservation: true,
-          Payement: true,
-          favoritePlats: true,
-          geolocalisations: true,
-          commande: true,
-          historique: true
-        } });
+        // include: {
+        //   note: true,
+        //   Article: true,
+        //   reservation: true,
+        //   Payement: true,
+        //   favoritePlats: true,
+        //   geolocalisations: true,
+        //   commande: true,
+        //   historique: true
+        // } 
+      });
 
       if (data) {
         return res.status(200).json(data);

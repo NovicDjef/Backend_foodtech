@@ -8,13 +8,14 @@ const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 dotenv.config();
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN, {
+  timeout: 120000 // 60 x 2 seconds timeout
+});
+//const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 
-
-const { otp: OTP } = prisma;
-const { user: User } = prisma;
+const { User, OTP } = prisma;
 export default {
 
     async getAllOtp(req, res) {
@@ -48,6 +49,9 @@ export default {
 
     async addPhoneUserOTP(req, res) {
       const { username, phone } = req.body;
+      if (!phone) {
+        return res.status(400).json({ message: "Le numéro de téléphone est requis." });
+      }
       const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
       try {
         const existingUser = await User.findUnique({
@@ -96,40 +100,44 @@ export default {
   
     async verifyOTP(req, res) {
       const { phone, code } = req.body;
-      if (!phone || !code) {
-        return res.status(400).json({ success: false, message: "Le numéro de téléphone et le code OTP sont requis." });
+    
+      if (!phone) {
+        return res.status(400).json({ success: false, message: "Le numéro de téléphone est requis." });
       }
+      if (!code) {
+        return res.status(400).json({ success: false, message: "Le code OTP est requis." });
+      }
+    
       const formattedPhone = phone.startsWith('+') ? phone : `+237${phone}`;
-  
+    
       try {
-        const otpEntry = await OTP.findFirst({
-          where: { phone: formattedPhone },
-          orderBy: { createdAt: 'desc' },
-        });
-  
-        if (!otpEntry) {
-          return res.status(404).json({ success: false, message: "Aucune entrée OTP trouvée pour cet utilisateur." });
-        }
-  
         const verificationCheck = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
           .verificationChecks
           .create({ to: formattedPhone, code });
-  
+    
         if (verificationCheck.status === 'approved') {
+          const otpEntry = await OTP.findUnique({
+            where: { phone: formattedPhone },
+          });
+    
+          if (!otpEntry) {
+            return res.status(400).json({ success: false, message: "OTP non trouvé pour ce numéro de téléphone." });
+          }
+    
           await OTP.update({
-            where: { id: otpEntry.id },
+            where: { phone: formattedPhone },
             data: { status: 'approved' },
           });
+    
           return res.status(200).json({ success: true, message: "Code OTP vérifié avec succès." });
         } else {
           return res.status(400).json({ success: false, message: "Le code OTP est incorrect." });
         }
       } catch (error) {
         console.error("Erreur lors de la vérification du code OTP :", error);
-        return handleServerError(res, error);
+        return res.status(500).json({ success: false, message: "Une erreur s'est produite lors de la vérification du code OTP." });
       }
     },
-  
   
   // async verifyOTP(req, res) {
   //   try {

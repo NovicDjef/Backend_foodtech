@@ -11,10 +11,10 @@ export default {
     try {
       const data = await Restaurant.findMany({
         include: {
-          article: true,
-          reservation: true,
-          menus: true,
-          heuresOuverture: true
+          // article: true,
+          // reservation: true,
+          // menus: true,
+          // heuresOuverture: true
         }
       });
       if (data) {
