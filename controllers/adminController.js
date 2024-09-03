@@ -1,127 +1,180 @@
-import pkg from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const { admin: Admin } = prisma;
-
-export default {
+export default  {
   async signUpAdmin(req, res) {
     try {
-      const result = await Admin.findUnique({ where: {  phone: req.body.phone } });
+      const { username, email, password, phone } = req.body;
 
-      if (result) {
-        return res.status(409).json({ message: 'Email Or Phone already exists' });
+      const existingAdmin = await prisma.admin.findFirst({
+        where: {
+          OR: [
+            { email },
+            { phone }
+          ]
+        }
+      });
+
+      if (existingAdmin) {
+        return res.status(409).json({ message: 'Email ou téléphone déjà utilisé' });
       }
 
-      const salt = await bcrypt.genSalt(10);
-      const hash = await bcrypt.hash(req.body.password, salt);
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = {
-        username: req.body.username,
-        email: req.body.email,
-        password: hash,
-        phone: req.body.phone,
-        image: req.file.filename,  // a prendre en compte losrque on veu ajouter l'image
-        // historiqueId: req.body.historiqueId,
-        // geolocalisationId: req.body.geolocalisationId,
+      const newAdmin = await prisma.admin.create({
+        data: {
+          username,
+          email,
+          password: hashedPassword,
+          phone,
+          image: req.file?.filename
+        },
         include: {
-          livraison: true,
-          User_role: true,
-          restaurant: true,
-          commande: true,
-          geolocalisations: true,
-          historique: true
+          userRoles: true,
+          restaurants: true,
+          geolocalisation: true
         }
-      };
+      });
 
-      const createdUser = await Admin.create({ data: user });
-
-      return res.status(200).json({
-        message: 'User created successfully',
-        result: createdUser,
+      res.status(201).json({
+        message: 'Admin créé avec succès',
+        admin: newAdmin
       });
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async getAllAdmin(req, res) {
+  async getAllAdmins(req, res) {
     try {
-      const data = await Admin.findMany({
+      const admins = await prisma.admin.findMany({
         include: {
-          livraison: true,
-          User_role: true,
-          restaurant: true,
-          commande: true,
-          geolocalisations: true,
-          historique: true
+          userRoles: true,
+          restaurants: true,
+          geolocalisation: true
         }
       });
 
-      if (data.length > 0) {
-        return res.status(200).json(data);
-      } else {
-        return res.status(404).json({ message: 'No data found' });
-      }
+      res.status(200).json(admins);
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
   async getAdminById(req, res) {
-    const id = parseInt(req.params.id);
-
     try {
-      const data = await Admin.findUnique({ where: { id } });
+      const { id } = req.params;
+      const admin = await prisma.admin.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          userRoles: true,
+          restaurants: true,
+          geolocalisation: true
+        }
+      });
 
-      if (data) {
-        return res.status(200).json(data);
-      } else {
-        return res.status(404).json({ message: 'Data not found' });
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin non trouvé' });
       }
+
+      res.status(200).json(admin);
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
+    }
+  },
+
+  async updateAdmin(req, res) {
+    try {
+      const { id } = req.params;
+      const { username, email, phone } = req.body;
+
+      const updatedAdmin = await prisma.admin.update({
+        where: { id: parseInt(id) },
+        data: {
+          username,
+          email,
+          phone,
+          image: req.file?.filename
+        }
+      });
+
+      res.status(200).json({
+        message: 'Admin mis à jour avec succès',
+        admin: updatedAdmin
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  async deleteAdmin(req, res) {
+    try {
+      const { id } = req.params;
+
+      await prisma.admin.delete({
+        where: { id: parseInt(id) }
+      });
+
+      res.status(200).json({ message: 'Admin supprimé avec succès' });
+    } catch (error) {
+      handleServerError(res, error);
     }
   },
 
   async login(req, res) {
     try {
-      const user = await Admin.findUnique({ where: { email: req.body.email, phone: req.body.phone } });
+      const { email, phone, password } = req.body;
 
-      if (!user) {
-        return res.status(401).json({ message: "User doesn't exist" });
+      const admin = await prisma.admin.findFirst({
+        where: {
+          OR: [
+            { email },
+            { phone }
+          ]
+        }
+      });
+
+      if (!admin) {
+        return res.status(401).json({ message: "Admin non trouvé" });
       }
 
-      const result = await bcrypt.compare(req.body.password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, admin.password);
 
-      if (result) {
-        const token = jwt.sign(
-          {
-            email: user.email,
-            phone: user.phone,
-            userId: user.id,
-          },
-          'secret'
-        );
-
-        return res.status(200).json({
-          message: 'Authentication successful',
-          user: user,
-          token: token,
-        });
-      } else {
-        return res.status(401).json({ message: 'Invalid credentials' });
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Identifiants invalides' });
       }
+
+      const token = jwt.sign(
+        {
+          email: admin.email,
+          phone: admin.phone,
+          adminId: admin.id,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      res.status(200).json({
+        message: 'Authentification réussie',
+        admin: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email,
+          phone: admin.phone
+        },
+        token
+      });
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 };
 
 function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }
+

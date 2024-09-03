@@ -1,11 +1,20 @@
 -- CreateEnum
+CREATE TYPE "CommandeStatus" AS ENUM ('EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE');
+
+-- CreateEnum
+CREATE TYPE "LivraisonType" AS ENUM ('COMMANDE', 'COLIS');
+
+-- CreateEnum
 CREATE TYPE "Statut" AS ENUM ('LIVREE', 'ANNULEE', 'NON_LIVRE');
 
 -- CreateEnum
 CREATE TYPE "Notation" AS ENUM ('ZERO', 'UN', 'DEUX', 'TROIS', 'QUATRE', 'CINQ');
 
 -- CreateEnum
-CREATE TYPE "Mode_payement" AS ENUM ('MOBILE_MONEY', 'CARTE_BANCAIRE');
+CREATE TYPE "Mode_payement" AS ENUM ('MOBILE_MONEY', 'CARTE_BANCAIRE', 'A_LA_LIVRAISON');
+
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('EN_ATTENTE', 'COMPLETE', 'ECHOUE', 'REMBOURSE');
 
 -- CreateTable
 CREATE TABLE "Admin" (
@@ -15,18 +24,18 @@ CREATE TABLE "Admin" (
     "password" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "image" TEXT,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Admin_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "User_role" (
+CREATE TABLE "UserRole" (
     "adminId" INTEGER NOT NULL,
     "roleId" INTEGER NOT NULL,
 
-    CONSTRAINT "User_role_pkey" PRIMARY KEY ("adminId","roleId")
+    CONSTRAINT "UserRole_pkey" PRIMARY KEY ("adminId","roleId")
 );
 
 -- CreateTable
@@ -43,9 +52,9 @@ CREATE TABLE "User" (
     "username" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "image" TEXT,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "geolocalisationId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -73,12 +82,12 @@ CREATE TABLE "Restaurant" (
     "image" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "ratings" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "adminId" INTEGER,
     "villeId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Restaurant_pkey" PRIMARY KEY ("id")
 );
@@ -108,8 +117,8 @@ CREATE TABLE "Menu" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "restaurantId" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Menu_pkey" PRIMARY KEY ("id")
 );
@@ -121,8 +130,8 @@ CREATE TABLE "Categorie" (
     "image" TEXT NOT NULL,
     "description" TEXT,
     "menuId" INTEGER,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Categorie_pkey" PRIMARY KEY ("id")
 );
@@ -136,9 +145,9 @@ CREATE TABLE "Plats" (
     "prix" DOUBLE PRECISION NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
     "ratings" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "categorieId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Plats_pkey" PRIMARY KEY ("id")
 );
@@ -150,13 +159,30 @@ CREATE TABLE "Commande" (
     "prix" DOUBLE PRECISION NOT NULL,
     "recommandation" TEXT,
     "position" TEXT NOT NULL,
+    "status" "CommandeStatus" NOT NULL DEFAULT 'EN_COURS',
     "userId" INTEGER,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "platsId" INTEGER,
     "livraisonId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Commande_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Colis" (
+    "id" SERIAL NOT NULL,
+    "description" TEXT NOT NULL,
+    "poids" DOUBLE PRECISION NOT NULL,
+    "dimensions" TEXT,
+    "adresseDepart" TEXT NOT NULL,
+    "adresseArrivee" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "livraisonId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Colis_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -164,11 +190,11 @@ CREATE TABLE "Article" (
     "id" SERIAL NOT NULL,
     "titre" TEXT NOT NULL,
     "content" TEXT,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "userId" INTEGER,
     "restaurantId" INTEGER,
     "platsId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Article_pkey" PRIMARY KEY ("id")
 );
@@ -176,11 +202,13 @@ CREATE TABLE "Article" (
 -- CreateTable
 CREATE TABLE "Livraison" (
     "id" SERIAL NOT NULL,
+    "type" "LivraisonType" NOT NULL,
     "statut" "Statut" NOT NULL DEFAULT 'NON_LIVRE',
-    "adresse" TEXT NOT NULL,
-    "dateLivraison" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
+    "adresseDepart" TEXT NOT NULL,
+    "adresseArrivee" TEXT NOT NULL,
+    "dateLivraison" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "serviceLivraisonId" INTEGER,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Livraison_pkey" PRIMARY KEY ("id")
 );
@@ -189,10 +217,10 @@ CREATE TABLE "Livraison" (
 CREATE TABLE "Note" (
     "id" SERIAL NOT NULL,
     "notation" "Notation" NOT NULL DEFAULT 'ZERO',
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "userId" INTEGER,
     "platsId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Note_pkey" PRIMARY KEY ("id")
 );
@@ -203,10 +231,10 @@ CREATE TABLE "Reservation" (
     "numero_table" TEXT,
     "nombre_personne" INTEGER NOT NULL,
     "prix_reservation" DOUBLE PRECISION NOT NULL,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "userId" INTEGER,
     "restaurantId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Reservation_pkey" PRIMARY KEY ("id")
 );
@@ -214,31 +242,31 @@ CREATE TABLE "Reservation" (
 -- CreateTable
 CREATE TABLE "Payement" (
     "id" SERIAL NOT NULL,
-    "amount" INTEGER NOT NULL,
-    "mode_payement" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "mode_payement" "Mode_payement" NOT NULL,
     "currency" TEXT NOT NULL,
-    "status" TEXT NOT NULL,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'EN_ATTENTE',
     "reference" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "email" TEXT,
-    "authorization_url" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "authorization_url" TEXT,
     "userId" INTEGER,
     "commandeId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Payement_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "slide" (
+CREATE TABLE "Slide" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "image" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "slide_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Slide_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -246,9 +274,9 @@ CREATE TABLE "Geolocalisation" (
     "id" SERIAL NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3),
     "adminId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Geolocalisation_pkey" PRIMARY KEY ("id")
 );
@@ -257,9 +285,9 @@ CREATE TABLE "Geolocalisation" (
 CREATE TABLE "Historique" (
     "id" SERIAL NOT NULL,
     "statut" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "updateAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
     "userId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Historique_pkey" PRIMARY KEY ("id")
 );
@@ -301,6 +329,15 @@ CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 CREATE UNIQUE INDEX "OTP_userId_key" ON "OTP"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Commande_livraisonId_key" ON "Commande"("livraisonId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Colis_livraisonId_key" ON "Colis"("livraisonId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Payement_commandeId_key" ON "Payement"("commandeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Geolocalisation_adminId_key" ON "Geolocalisation"("adminId");
 
 -- CreateIndex
@@ -310,10 +347,10 @@ CREATE UNIQUE INDEX "_FavoritePlatsToPlats_AB_unique" ON "_FavoritePlatsToPlats"
 CREATE INDEX "_FavoritePlatsToPlats_B_index" ON "_FavoritePlatsToPlats"("B");
 
 -- AddForeignKey
-ALTER TABLE "User_role" ADD CONSTRAINT "User_role_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "User_role" ADD CONSTRAINT "User_role_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_geolocalisationId_fkey" FOREIGN KEY ("geolocalisationId") REFERENCES "Geolocalisation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -347,6 +384,12 @@ ALTER TABLE "Commande" ADD CONSTRAINT "Commande_platsId_fkey" FOREIGN KEY ("plat
 
 -- AddForeignKey
 ALTER TABLE "Commande" ADD CONSTRAINT "Commande_livraisonId_fkey" FOREIGN KEY ("livraisonId") REFERENCES "Livraison"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Colis" ADD CONSTRAINT "Colis_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Colis" ADD CONSTRAINT "Colis_livraisonId_fkey" FOREIGN KEY ("livraisonId") REFERENCES "Livraison"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Article" ADD CONSTRAINT "Article_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

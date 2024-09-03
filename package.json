@@ -11,7 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^5.11.0",
+    "@faker-js/faker": "^8.4.1",
+    "@hachther/mesomb": "^1.1.1",
+    "@prisma/client": "^5.19.0",
     "axios": "^1.7.2",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -25,5 +27,13 @@
     "prettier": "^3.2.5",
     "twilio": "^5.0.4",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "prisma": {
+    "seed": "node ./prisma/seed.js"
   }
 }

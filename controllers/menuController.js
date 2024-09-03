@@ -1,114 +1,194 @@
-import pkg from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { menu: Menu } = prisma;
+export default  {
+  // Créer un nouveau menu
+  async createMenu(req, res) {
+    try {
+      const { name, restaurantId } = req.body;
+      
+      const newMenu = await prisma.menu.create({
+        data: {
+          name,
+          restaurant: { connect: { id: parseInt(restaurantId) } },
+        },
+        include: {
+          restaurant: true,
+        },
+      });
 
-export default {
+      res.status(201).json({
+        message: "Menu créé avec succès",
+        menu: newMenu
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir tous les menus
   async getAllMenus(req, res) {
     try {
-      const data = await Menu.findMany({
+      const menus = await prisma.menu.findMany({
         include: {
-          categories: {
-            include: {
-              plats: true
-            }
-          }
+          restaurant: true,
+          categories: true,
         }
       });
-      if (data.length > 0) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'No menus found' });
-      }
+
+      res.status(200).json(menus);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
+  // Obtenir un menu par son ID
   async getMenuById(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const data = await Menu.findUnique({ 
-        where: { id },
+      const { id } = req.params;
+      const menu = await prisma.menu.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          restaurant: true,
+          categories: {
+            include: {
+              plats: true,
+            },
+          },
+        }
+      });
+
+      if (!menu) {
+        return res.status(404).json({ message: "Menu non trouvé" });
+      }
+
+      res.status(200).json(menu);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Mettre à jour un menu
+  async updateMenu(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, restaurantId } = req.body;
+
+      const updatedMenu = await prisma.menu.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          restaurant: restaurantId ? { connect: { id: parseInt(restaurantId) } } : undefined,
+        },
+        include: {
+          restaurant: true,
+        },
+      });
+
+      res.status(200).json({
+        message: "Menu mis à jour avec succès",
+        menu: updatedMenu
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Supprimer un menu
+  async deleteMenu(req, res) {
+    try {
+      const { id } = req.params;
+
+      await prisma.menu.delete({
+        where: { id: parseInt(id) }
+      });
+
+      res.status(200).json({ message: "Menu supprimé avec succès" });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir les catégories d'un menu spécifique
+  async getCategoriesByMenu(req, res) {
+    try {
+      const { id } = req.params;
+      const menu = await prisma.menu.findUnique({
+        where: { id: parseInt(id) },
         include: {
           categories: {
             include: {
-              plats: true
-            }
-          }
+              plats: true,
+            },
+          },
         }
       });
-      if (data) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'Menu not found' });
+
+      if (!menu) {
+        return res.status(404).json({ message: "Menu non trouvé" });
       }
+
+      res.status(200).json(menu.categories);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async addMenu(req, res) {
+  // Ajouter une catégorie à un menu
+  async addCategoryToMenu(req, res) {
     try {
-      const menu = {
-        name: req.body.name,
-        image: req.file.filename,
-        description: req.body.description,
-        // include: {
-        //   categories: true
-        // }
-      };
-      const result = await Menu.create({ data: menu });
+      const { menuId } = req.params;
+      const { name, image, description } = req.body;
+
+      const updatedMenu = await prisma.menu.update({
+        where: { id: parseInt(menuId) },
+        data: {
+          categories: {
+            create: {
+              name,
+              image,
+              description,
+            },
+          },
+        },
+        include: {
+          categories: true,
+        },
+      });
+
       res.status(200).json({
-        message: 'Menu created successfully',
-        menu: result,
+        message: "Catégorie ajoutée au menu avec succès",
+        menu: updatedMenu
       });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async updateMenu(req, res) {
+  // Obtenir les menus d'un restaurant spécifique
+  async getMenusByRestaurant(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const menu = {
-        name: req.body.name,
-        image: req.file.filename,
-        description: req.body.description,
-        // include: {
-        //   categories: true
-        // }
-      };
-      const result = await Menu.update({
-        where: { id },
-        data: menu,
+      const { restaurantId } = req.params;
+      const menus = await prisma.menu.findMany({
+        where: { restaurantId: parseInt(restaurantId) },
+        include: {
+          categories: {
+            include: {
+              plats: true,
+            },
+          },
+        }
       });
-      res.status(201).json({
-        message: 'Menu updated successfully',
-        result,
-      });
-    } catch (error) {
-      await handleServerError(res, error);
-    }
-  },
 
-  async deleteMenu(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      const result = await Menu.delete({ where: { id } });
-      res.status(201).json({
-        message: 'Menu deleted successfully',
-        result,
-      });
+      res.status(200).json(menus);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 };
 
-async function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+function handleServerError(res, error) {
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }

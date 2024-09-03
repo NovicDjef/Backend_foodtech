@@ -1,13 +1,21 @@
-import categorieController from '../controllers/categorieController.js'
-import upload from '../middlewares/multer.js'
-import express from 'express'
 
-const router = express.Router()
 
-router.get('/categories', categorieController.getAllCategorie)
-router.get('/categorie/:id', categorieController.getCategorieById)
-router.post('/categorie', upload.single('image'), categorieController.addCategorie)
-router.delete('/categorie/:id', categorieController.deleteCategorie)
-router.patch('/categorie/:id', upload.single('image'), categorieController.updateCategorie)
+import express from 'express';
+import CategorieController from '../controllers/categorieController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-export default router
+const router = express.Router();
+
+// Routes publiques
+router.get('/categories', CategorieController.getAllCategories);
+router.get('/categories/:id', CategorieController.getCategorieById);
+router.get('/categories/:id/plats', CategorieController.getPlatsByCategorie);
+router.get('/menus/:menuId/categories', CategorieController.getCategoriesByMenu);
+
+// Routes protégées (nécessitant une authentification)
+router.post('/categories', authMiddleware, CategorieController.createCategorie);
+router.put('/categories/:id', authMiddleware, CategorieController.updateCategorie);
+router.delete('/categories/:id', authMiddleware, CategorieController.deleteCategorie);
+router.post('/categories/:categorieId/plats', authMiddleware, CategorieController.addPlatToCategorie);
+
+export default router;

@@ -1,13 +1,19 @@
-import menuController from '../controllers/menuController.js'
-import upload from '../middlewares/multer.js'
-import express from 'express'
+import express from 'express';
+import MenuController from '../controllers/menuController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
-router.get('/menus', menuController.getAllMenus)
-router.get('/menu/:id', menuController.getMenuById)
-router.post('/menu', upload.single('image'), menuController.addMenu)
-router.patch('/menu/:id', menuController.updateMenu)
-router.delete('/menu/:id', menuController.deleteMenu)
+// Routes publiques
+router.get('/menus', MenuController.getAllMenus);
+router.get('/menus/:id', MenuController.getMenuById);
+router.get('/menus/:id/categories', MenuController.getCategoriesByMenu);
+router.get('/restaurants/:restaurantId/menus', MenuController.getMenusByRestaurant);
 
-export default router
+// Routes protégées (nécessitant une authentification)
+router.post('/menus', authMiddleware, MenuController.createMenu);
+router.put('/menus/:id', authMiddleware, MenuController.updateMenu);
+router.delete('/menus/:id', authMiddleware, MenuController.deleteMenu);
+router.post('/menus/:menuId/categories', authMiddleware, MenuController.addCategoryToMenu);
+
+export default router;

@@ -1,80 +1,131 @@
-import pkg from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
 
-
-
-const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { role: Role } = prisma;
-const { admin: Admin } = prisma;
-
-export default {
-  async getAllRole(req, res) {
+ export default  {
+  async createRole(req, res) {
     try {
-      const data = await Role.findMany();
+      const { name } = req.body;
 
-      if (data.length > 0) {
-        return res.status(200).json(data);
-      } else {
-        return res.status(404).json({ message: 'No data found' });
+      // Vérifier si le rôle existe déjà
+      const existingRole = await prisma.role.findFirst({ where: { name } });
+      if (existingRole) {
+        return res.status(409).json({ message: "Ce rôle existe déjà" });
       }
+
+      const newRole = await prisma.role.create({
+        data: { name }
+      });
+
+      res.status(201).json({
+        message: "Rôle créé avec succès",
+        role: newRole
+      });
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
+    }
+  },
+
+  async getAllRoles(req, res) {
+    try {
+      const roles = await prisma.role.findMany({
+        include: {
+          userRoles: {
+            include: {
+              admin: true
+            }
+          }
+        }
+      });
+
+      res.status(200).json(roles);
+    } catch (error) {
+      handleServerError(res, error);
     }
   },
 
   async getRoleById(req, res) {
-    const id = parseInt(req.params.id);
-
     try {
-      const data = await Role.findUnique({ where: { id } });
+      const { id } = req.params;
+      const role = await prisma.role.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          userRoles: {
+            include: {
+              admin: true
+            }
+          }
+        }
+      });
 
-      if (data) {
-        return res.status(200).json(data);
-      } else {
-        return res.status(404).json({ message: 'Data not found' });
+      if (!role) {
+        return res.status(404).json({ message: "Rôle non trouvé" });
       }
+
+      res.status(200).json(role);
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async addRole(req, res) {
+  async updateRole(req, res) {
     try {
-      const role = {
-        name: req.body.name,
-      };
+      const { id } = req.params;
+      const { name } = req.body;
 
-      const createdRole = await Role.create({ data: role });
+      // Vérifier si le nouveau nom de rôle existe déjà
+      const existingRole = await prisma.role.findFirst({
+        where: { 
+          name,
+          NOT: { id: parseInt(id) }
+        }
+      });
 
-      return res.status(200).json({
-        message: 'Role created successfully',
-        result: createdRole,
+      if (existingRole) {
+        return res.status(409).json({ message: "Un rôle avec ce nom existe déjà" });
+      }
+
+      const updatedRole = await prisma.role.update({
+        where: { id: parseInt(id) },
+        data: { name }
+      });
+
+      res.status(200).json({
+        message: "Rôle mis à jour avec succès",
+        role: updatedRole
       });
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
   async deleteRole(req, res) {
-    const id = parseInt(req.params.id);
-
     try {
-      const deletedRole = await Role.delete({ where: { id } });
+      const { id } = req.params;
 
-      return res.status(201).json({
-        message: 'Role delete success',
-        result: deletedRole,
+      // Vérifier si le rôle est utilisé
+      const userRoles = await prisma.userRole.findMany({
+        where: { roleId: parseInt(id) }
       });
+
+      if (userRoles.length > 0) {
+        return res.status(400).json({ 
+          message: "Ce rôle ne peut pas être supprimé car il est associé à des utilisateurs"
+        });
+      }
+
+      await prisma.role.delete({
+        where: { id: parseInt(id) }
+      });
+
+      res.status(200).json({ message: "Rôle supprimé avec succès" });
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
-  },
+  }
 };
 
 function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }

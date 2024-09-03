@@ -1,13 +1,19 @@
-import restaurantController from '../controllers/restaurantController.js'
-import upload from '../middlewares/multer.js'
-import express from 'express'
 
-const router = express.Router()
 
-router.get('/restaurants', restaurantController.getAllRestaurant)
-router.get('/restaurant/:id', restaurantController.getRestaurantById)
-router.post('/restaurant', upload.single('image'), restaurantController.addRestaurant)
-router.patch('/restaurant/:id', upload.single('image'), restaurantController.updateRestaurant)
-router.delete('/restaurant/:id', restaurantController.deleteRestaurant)
+import express from 'express';
+import RestaurantController from '../controllers/RestaurantController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-export default router
+const router = express.Router();
+
+// Routes publiques
+router.get('/restaurants', RestaurantController.getAllRestaurants);
+router.get('/restaurants/:id', RestaurantController.getRestaurantById);
+router.get('/restaurants/search', RestaurantController.searchRestaurants);
+
+// Routes protégées (nécessitant une authentification)
+router.post('/restaurants', authMiddleware, RestaurantController.createRestaurant);
+router.put('/restaurants/:id', authMiddleware, RestaurantController.updateRestaurant);
+router.delete('/restaurants/:id', authMiddleware, RestaurantController.deleteRestaurant);
+
+export default router;

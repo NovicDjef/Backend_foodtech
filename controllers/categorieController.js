@@ -1,114 +1,188 @@
-import pkg from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
 
-const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { categorie: Categorie } = prisma;
-
-export default {
-  async getAllCategorie(req, res) {
+ export default  {
+  // Créer une nouvelle catégorie
+  async createCategorie(req, res) {
     try {
-      const data = await Categorie.findMany({
+      const { name, image, description, menuId } = req.body;
+      
+      const newCategorie = await prisma.categorie.create({
+        data: {
+          name,
+          image,
+          description,
+          menu: menuId ? { connect: { id: parseInt(menuId) } } : undefined,
+        },
         include: {
-          plats: true
+          menu: true,
+        },
+      });
+
+      res.status(201).json({
+        message: "Catégorie créée avec succès",
+        categorie: newCategorie
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir toutes les catégories
+  async getAllCategories(req, res) {
+    try {
+      const categories = await prisma.categorie.findMany({
+        include: {
+          menu: true,
+          plats: true,
         }
       });
-      if (data.length > 0) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'not found data' });
-      }
+
+      res.status(200).json(categories);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
+  // Obtenir une catégorie par son ID
   async getCategorieById(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const data = await Categorie.findUnique({ 
-        where: { id },
+      const { id } = req.params;
+      const categorie = await prisma.categorie.findUnique({
+        where: { id: parseInt(id) },
         include: {
-          plats: true
-        } });
-      if (data) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'not found data' });
+          menu: true,
+          plats: true,
+        }
+      });
+
+      if (!categorie) {
+        return res.status(404).json({ message: "Catégorie non trouvée" });
       }
+
+      res.status(200).json(categorie);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async addCategorie(req, res) {
+  // Mettre à jour une catégorie
+  async updateCategorie(req, res) {
     try {
-      const categorie = {
-        name: req.body.name,
-        image: req.file.filename,    //a mettre en place pour l'ajout dynamique des images
-        description: req.body.description,
-        menuId: parseInt(req.body.menuId), 
-        // restaurantId: req.body.restaurantId,
-        // include: {
-        //   plats: true
-        // }
-      };
-      const result = await Categorie.create({ data: categorie });
+      const { id } = req.params;
+      const { name, image, description, menuId } = req.body;
+
+      const updatedCategorie = await prisma.categorie.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          image,
+          description,
+          menu: menuId ? { connect: { id: parseInt(menuId) } } : undefined,
+        },
+        include: {
+          menu: true,
+        },
+      });
+
       res.status(200).json({
-        message: 'Categorie create success',
-        result,
+        message: "Catégorie mise à jour avec succès",
+        categorie: updatedCategorie
       });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
+  // Supprimer une catégorie
   async deleteCategorie(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const result = await Categorie.delete({ 
-        where: { id },
-        include: {
-          plats: true
-        } });
-      res.status(201).json({
-        message: 'categorie delete success',
-        result,
+      const { id } = req.params;
+
+      await prisma.categorie.delete({
+        where: { id: parseInt(id) }
       });
+
+      res.status(200).json({ message: "Catégorie supprimée avec succès" });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async updateCategorie(req, res) {
-    const id = parseInt(req.params.id);
+  // Obtenir les plats d'une catégorie spécifique
+  async getPlatsByCategorie(req, res) {
     try {
-      const categorie = {
-        name: req.body.name,
-        image: req.file.filename, 
-        description: req.body.description, 
-        menuId: parseInt(req.body.menuId),  
-        // include: {
-        //   plats: true,
-        // }
-      };
-      const result = await Categorie.updateMany({
-        where: { id },
-        data: categorie,
+      const { id } = req.params;
+      const categorie = await prisma.categorie.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          plats: true,
+        }
       });
-      res.status(201).json({
-        message: 'categorie update success',
-        result: result,
+
+      if (!categorie) {
+        return res.status(404).json({ message: "Catégorie non trouvée" });
+      }
+
+      res.status(200).json(categorie.plats);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Ajouter un plat à une catégorie
+  async addPlatToCategorie(req, res) {
+    try {
+      const { categorieId } = req.params;
+      const { name, image, description, prix, quantity } = req.body;
+
+      const updatedCategorie = await prisma.categorie.update({
+        where: { id: parseInt(categorieId) },
+        data: {
+          plats: {
+            create: {
+              name,
+              image,
+              description,
+              prix: parseFloat(prix),
+              quantity: parseInt(quantity),
+            },
+          },
+        },
+        include: {
+          plats: true,
+        },
+      });
+
+      res.status(200).json({
+        message: "Plat ajouté à la catégorie avec succès",
+        categorie: updatedCategorie
       });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir les catégories d'un menu spécifique
+  async getCategoriesByMenu(req, res) {
+    try {
+      const { menuId } = req.params;
+      const categories = await prisma.categorie.findMany({
+        where: { menuId: parseInt(menuId) },
+        include: {
+          plats: true,
+        }
+      });
+
+      res.status(200).json(categories);
+    } catch (error) {
+      handleServerError(res, error);
     }
   },
 };
 
-async function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+function handleServerError(res, error) {
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }

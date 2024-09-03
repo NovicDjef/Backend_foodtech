@@ -1,137 +1,219 @@
-import pkg from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import { PrismaClient } from '@prisma/client';
 
-const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
-const { plats: Plats } = prisma;
+export default  {
+  // Créer un nouveau plat
+  async createPlat(req, res) {
+    try {
+      const { name, image, description, prix, quantity, categorieId } = req.body;
+      
+      const newPlat = await prisma.plats.create({
+        data: {
+          name,
+          image,
+          description,
+          prix: parseFloat(prix),
+          quantity: parseInt(quantity),
+          categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
+        },
+        include: {
+          categorie: true,
+        },
+      });
 
-export default {
+      res.status(201).json({
+        message: "Plat créé avec succès",
+        plat: newPlat
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir tous les plats
   async getAllPlats(req, res) {
     try {
-      const data = await Plats.findMany({
+      const plats = await prisma.plats.findMany({
         include: {
-          // commande: true,
-          // article: true,
-          // note: true,
-          // favoritePlats: true
+          categorie: true,
+          notes: true,
+          favoritePlats: true,
         }
       });
-      if (data.length > 0) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'not found data' });
-      }
+
+      res.status(200).json(plats);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async getPlatsById(req, res) {
+  // Obtenir un plat par son ID
+  async getPlatById(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const data = await Plats.findUnique({ 
-        where: { id },
+      const { id } = req.params;
+      const plat = await prisma.plats.findUnique({
+        where: { id: parseInt(id) },
         include: {
-          commande: true,
-          article: true,
-          note: true,
-          favoritePlats: true
+          categorie: true,
+          notes: true,
+          favoritePlats: true,
         }
-       });
-      if (data) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'not found data' });
+      });
+
+      if (!plat) {
+        return res.status(404).json({ message: "Plat non trouvé" });
       }
+
+      res.status(200).json(plat);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async addPlats(req, res) {
+  // Mettre à jour un plat
+  async updatePlat(req, res) {
     try {
-      const plats = {
-        name: req.body.name,
-        image: req.file.filename,
-        description: req.body.description,
-        prix: parseInt(req.body.prix),
-        ratings: parseInt(req.body.ratings),
-        quantity: parseInt(req.body.quantity),
-        categorieId: parseInt(req.body.categorieId)
-        // include: {
-        //   commande: true,
-        //   article: true,
-        //   note: true,
-        //   favoritePlats: true
-        // }
-      };
-      console.log(plats)
-      const result = await Plats.create({ data: plats });
+      const { id } = req.params;
+      const { name, image, description, prix, quantity, categorieId } = req.body;
+
+      const updatedPlat = await prisma.plats.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          image,
+          description,
+          prix: prix ? parseFloat(prix) : undefined,
+          quantity: quantity ? parseInt(quantity) : undefined,
+          categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
+        },
+        include: {
+          categorie: true,
+        },
+      });
+
       res.status(200).json({
-        message: 'plat create success',
-        plats: result,
+        message: "Plat mis à jour avec succès",
+        plat: updatedPlat
       });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async updatePlats(req, res) {
+  // Supprimer un plat
+  async deletePlat(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const plats = {
-        name: req.body.name,
-        image: req.file.filename,
-        description: req.body.description,
-        prix: parseInt(req.body.prix),
-        ratings: parseInt(req.body.ratings),
-        // include: {
-        //   commande: true,
-        //   article: true,
-        //   note: true,
-        //   favoritePlats: true
-        // }
-      };
-      const result = await Plats.update({
-        where: { id },
-        data: plats,
+      const { id } = req.params;
+
+      await prisma.plats.delete({
+        where: { id: parseInt(id) }
       });
-      res.status(201).json({
-        message: 'Software update success',
-        result,
-      });
+
+      res.status(200).json({ message: "Plat supprimé avec succès" });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async deletePlats(req, res) {
+  // Ajouter une note à un plat
+  async addNoteToPLat(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const result = await Plats.delete({ 
-        where: { id },
+      const { platId } = req.params;
+      const { userId, notation } = req.body;
+
+      const newNote = await prisma.note.create({
+        data: {
+          notation,
+          user: { connect: { id: parseInt(userId) } },
+          plats: { connect: { id: parseInt(platId) } },
+        },
+      });
+
+      // Mettre à jour la note moyenne du plat
+      const plat = await prisma.plats.findUnique({
+        where: { id: parseInt(platId) },
+        include: { notes: true },
+      });
+
+      const averageRating = plat.notes.reduce((sum, note) => sum + note.notation, 0) / plat.notes.length;
+
+      await prisma.plats.update({
+        where: { id: parseInt(platId) },
+        data: { ratings: averageRating },
+      });
+
+      res.status(200).json({
+        message: "Note ajoutée au plat avec succès",
+        note: newNote
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Ajouter un plat aux favoris d'un utilisateur
+  async addPlatToFavorites(req, res) {
+    try {
+      const { platId, userId } = req.params;
+
+      const favoritePlat = await prisma.favoritePlats.create({
+        data: {
+          user: { connect: { id: parseInt(userId) } },
+          plats: { connect: { id: parseInt(platId) } },
+        },
+      });
+
+      res.status(200).json({
+        message: "Plat ajouté aux favoris avec succès",
+        favoritePlat
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir les plats favoris d'un utilisateur
+  async getUserFavoritePlats(req, res) {
+    try {
+      const { userId } = req.params;
+      const favoritePlats = await prisma.favoritePlats.findMany({
+        where: { userId: parseInt(userId) },
         include: {
-          Restaurant: true,
-          Article: true,
-          note: true,
-          //PlatCommande: true,
-          Categorie: true
-        } });
-      res.status(201).json({
-        message: 'Software delete success',
-        result,
+          plats: true,
+        }
       });
+
+      res.status(200).json(favoritePlats.map(fp => fp.plats));
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  
+  // Rechercher des plats
+  async searchPlats(req, res) {
+    try {
+      const { query } = req.query;
+      const plats = await prisma.plats.findMany({
+        where: {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        include: {
+          categorie: true,
+        }
+      });
+
+      res.status(200).json(plats);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
 };
 
-async function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+function handleServerError(res, error) {
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }

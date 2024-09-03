@@ -6,7 +6,7 @@ import cors from 'cors'
 import multer from 'multer'
 import userRoute from './routes/userRoute.js'
 import adminRoute from './routes/adminRoute.js'
-import roleRoute from "./routes/roleRoute.js"
+// import roleRoute from "./routes/roleRoute.js"
 import slideRoute from "./routes/slideRoute.js"
 import commandeRoute from "./routes/commandeRoute.js"
 import noteRoute from "./routes/noteRoute.js"
@@ -23,6 +23,11 @@ import restaurantRoute from "./routes/restaurantRoute.js"
 import villeRoute from "./routes/villeRoute.js"
 import otpRoute from "./routes/otpRoute.js"
 import heureOuveruteRoute from "./routes/heureOuveruteRoute.js"
+import colisRoute from "./routes/colisRoute.js"
+// import userRoleRoute from "./routes/userRoleRoute.js"
+
+
+dotenv.config();
 
 const server = express()
 server.use(express.json())
@@ -56,7 +61,7 @@ message: 'Server is working !',
 })
 
 server.use("/", userRoute)
-server.use("/", roleRoute)
+// server.use("/", roleRoute)
 server.use("/", adminRoute)
 server.use("/", slideRoute)
 server.use("/", commandeRoute)
@@ -73,6 +78,8 @@ server.use("/", articleRoute)
 server.use("/", restaurantRoute)
 server.use("/", villeRoute)
 server.use("/", otpRoute)
+server.use("/", colisRoute)
+// server.use("/", userRoleRoute)
 server.use("/", heureOuveruteRoute)
 
 server.use('/images', express.static('images'))

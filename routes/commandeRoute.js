@@ -1,15 +1,20 @@
-import commandeController from '../controllers/commandeController.js'
-import upload from '../middlewares/multer.js'
-import express from 'express'
+import express from 'express';
+import CommandeController from '../controllers/commandeController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
-router.get('/commandes', commandeController.getAllCommande)
-router.get('/commande/:id', commandeController.getCommandeById)
-router.post('/commande', commandeController.addCommande)
-router.patch('/commande/:id', commandeController.updateCommande)
-router.delete('/commande/:id', commandeController.deleteCommande)
+// Routes publiques
+router.get('/commandes', CommandeController.getAllCommandes);
+router.get('/commandes/:id', CommandeController.getCommandeById);
+router.get('/users/:userId/commandes', CommandeController.getUserCommandes);
+router.get('/commandes/status/:status', CommandeController.getCommandesByStatus);
 
-export default router
+// Routes protégées (nécessitant une authentification)
+router.post('/commandes', authMiddleware, CommandeController.createCommande);
+router.put('/commandes/:id', authMiddleware, CommandeController.updateCommande);
+router.delete('/commandes/:id', authMiddleware, CommandeController.deleteCommande);
+router.patch('/commandes/:id/status', authMiddleware, CommandeController.updateCommandeStatus);
+router.post('/commandes/:id/payment', authMiddleware, CommandeController.addPaymentToCommande);
 
-
+export default router;

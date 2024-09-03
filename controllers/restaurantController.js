@@ -1,131 +1,159 @@
-import pkg from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-const { PrismaClient } = pkg;
+import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
-const { restaurant: Restaurant, plats: Plats } = prisma;
-
-export default {
-  async getAllRestaurant(req, res) {
+ export default {
+  // Créer un nouveau restaurant
+  async createRestaurant(req, res) {
     try {
-      const data = await Restaurant.findMany({
-        include: {
-          // article: true,
-          // reservation: true,
-          // menus: true,
-          // heuresOuverture: true
-        }
+      const { name, phone, adresse, image, description, latitude, longitude, adminId, villeId } = req.body;
+      
+      const newRestaurant = await prisma.restaurant.create({
+        data: {
+          name,
+          phone,
+          adresse,
+          image,
+          description,
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+          admin: adminId ? { connect: { id: parseInt(adminId) } } : undefined,
+          ville: villeId ? { connect: { id: parseInt(villeId) } } : undefined,
+        },
       });
-      if (data) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'not found data' });
-      }
+
+      res.status(201).json({
+        message: "Restaurant créé avec succès",
+        restaurant: newRestaurant
+      });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
+  // Obtenir tous les restaurants
+  async getAllRestaurants(req, res) {
+    try {
+      const restaurants = await prisma.restaurant.findMany({
+        include: {
+          menus: true,
+          heuresOuverture: true,
+          ville: true,
+          admin: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        }
+      });
 
+      res.status(200).json(restaurants);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Obtenir un restaurant par son ID
   async getRestaurantById(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const data = await Restaurant.findUnique({ 
-        where: { id }, 
+      const { id } = req.params;
+      const restaurant = await prisma.restaurant.findUnique({
+        where: { id: parseInt(id) },
         include: {
-          plats: true,
-          article: true,
-          reservation: true,
+          menus: true,
+          heuresOuverture: true,
+          ville: true,
+          admin: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
         }
       });
-      if (data) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ message: 'not found data' });
+
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant non trouvé" });
       }
+
+      res.status(200).json(restaurant);
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
-  async addRestaurant(req, res) {
-    try {
-      const restaurant = {
-        name: req.body.name,
-        phone: req.body.phone,
-        description: req.body.description,
-        adresse: req.body.adresse,
-        image: req.file.filename,
-        ratings: parseInt(req.body.ratings),
-        latitude: parseFloat(req.body.latitude),
-        longitude: parseFloat(req.body.longitude)
-        // include: {
-        //   plats: true,
-        //   article: true,
-        //   reservation: true,
-        // }
-      };
-      const result = await Restaurant.create({ data: restaurant });
-      res.status(200).json({
-        message: 'Restaurant create success',
-        result,
-      });
-    } catch (error) {
-      await handleServerError(res, error);
-    }
-  },
-
-  async deleteRestaurant(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      const result = await Restaurant.delete({
-         where: { id },
-         include: {
-          plats: true,
-          article: true,
-          reservation: true,
-        }
-        });
-      res.status(201).json({
-        message: 'Restaurant delete success',
-        result,
-      });
-    } catch (error) {
-      await handleServerError(res, error);
-    }
-  },
-
+  // Mettre à jour un restaurant
   async updateRestaurant(req, res) {
     try {
-      const id = parseInt(req.params.id);
-      const restaurant = {
-        name: req.body.name,
-        phone: req.body.phone,
-        description: req.body.description,
-        adresse: req.body.adresse,
-        image: req.file.filename,
-        ratings: parseInt(req.body.ratings),
-        latitude: parseFloat(req.body.latitude),
-        longitude: parseFloat(req.body.longitude)
-        // include: {
-        //   plats: true,
-        //   article: true,
-        //   reservation: true,
-        // }
-      };
-      console.log("restaurant :", restaurant)
-      const result = await Restaurant.update({ data: restaurant, where: { id } });
-      res.status(201).json({
-        message: 'equpement update success',
-        result,
+      const { id } = req.params;
+      const { name, phone, adresse, image, description, latitude, longitude, adminId, villeId } = req.body;
+
+      const updatedRestaurant = await prisma.restaurant.update({
+        where: { id: parseInt(id) },
+        data: {
+          name,
+          phone,
+          adresse,
+          image,
+          description,
+          latitude: latitude ? parseFloat(latitude) : undefined,
+          longitude: longitude ? parseFloat(longitude) : undefined,
+          admin: adminId ? { connect: { id: parseInt(adminId) } } : undefined,
+          ville: villeId ? { connect: { id: parseInt(villeId) } } : undefined,
+        },
+      });
+
+      res.status(200).json({
+        message: "Restaurant mis à jour avec succès",
+        restaurant: updatedRestaurant
       });
     } catch (error) {
-      await handleServerError(res, error);
+      handleServerError(res, error);
+    }
+  },
+
+  // Supprimer un restaurant
+  async deleteRestaurant(req, res) {
+    try {
+      const { id } = req.params;
+
+      await prisma.restaurant.delete({
+        where: { id: parseInt(id) }
+      });
+
+      res.status(200).json({ message: "Restaurant supprimé avec succès" });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Rechercher des restaurants par nom ou adresse
+  async searchRestaurants(req, res) {
+    try {
+      const { query } = req.query;
+      const restaurants = await prisma.restaurant.findMany({
+        where: {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { adresse: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        include: {
+          ville: true,
+        },
+      });
+
+      res.status(200).json(restaurants);
+    } catch (error) {
+      handleServerError(res, error);
     }
   },
 };
+
 function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }

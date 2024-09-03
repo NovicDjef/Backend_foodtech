@@ -1,185 +1,154 @@
-import pkg from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-const { PrismaClient } = pkg;
+
 const prisma = new PrismaClient();
 
-const { user: User } = prisma;
-
-export default {
+export default  {
   async signUpUser(req, res) {
     try {
-      // Vérification si le numéro de téléphone existe déjà
-      const existingUser = await User.findUnique({ where: { phone: req.body.phone } });
+      const { username, phone } = req.body;
+
+      const existingUser = await prisma.user.findUnique({ where: { phone } });
       if (existingUser) {
-        return res.status(409).json({ message: 'Phone number already exists' });
+        return res.status(409).json({ message: "Un utilisateur avec ce numéro de téléphone existe déjà" });
       }
 
-      // Génération du code OTP
-      const otpCode = generateOTP();
-
-      // Stockage du code OTP dans la base de données
-      await storeOTPInDatabase(req.body.phone, otpCode);
-
-      // Envoi du code OTP à l'utilisateur
-      await sendOTPToUser(req.body.phone, otpCode);
-
-      // Création de l'utilisateur dans la base de données
-      const newUser = await User.create({
+      const newUser = await prisma.user.create({
         data: {
-          username: req.body.username,
-          phone: req.body.phone,
-          image: req.file.filename,
-          // historiqueId: req.body.historiqueId,
-          // articleId: req.body.articleId,
-          // payementId: req.body.payementId,
-          include: {
-            note: true,
-            Article: true,
-            reservation: true,
-            Payement: true,
-            favoritePlats: true,
-            geolocalisations: true,
-            commande: true,
-            historique: true
-          }
+          username,
+          phone,
+          image: req.file?.filename
         }
       });
 
-      return res.status(200).json({
-        message: 'User created successfully',
-        user: newUser,
+      const token = jwt.sign(
+        { userId: newUser.id, phone: newUser.phone },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.status(201).json({
+        message: "Utilisateur créé avec succès",
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          phone: newUser.phone
+        },
+        token
       });
     } catch (error) {
-      return handleServerError(res, error);
-    }
-  },
-
-  async signUpUser(req, res) {
-    try {
-      const result = await User.findUnique({ 
-        where: { phone: req.body.phone  },
-       });
-
-      if (result) {
-        return res.status(409).json({ message: 'Phone number already exists' });
-      }
-      const user = {
-        username: req.body.username,
-        phone: req.body.phone,
-        image: req.file.filename,  // a prendre en compte losrque on veu ajouter l'image
-        // historiqueId: req.body.historiqueId,
-        // articleId: req.body.articleId,
-        // payementId: req.body.payementId,
-        include: {
-          note: true,
-          article: true,
-          reservation: true,
-          Payement: true,
-          favoritePlats: true,
-          geolocalisations: true,
-          commande: true,
-          historique: true
-        }
-      };
-
-      const createdUser = await User.create({ data: user });
-
-      return res.status(200).json({
-        message: 'User created successfully',
-        user: createdUser,
-      });
-    } catch (error) {
-      return handleServerError(res, error);
-    }
-  },
-
-  async getAllUser(req, res) {
-    try {
-      const data = await User.findMany({
-        // include: {
-        //   note: true,
-        //   article: true,
-        //   reservation: true,
-        //   payement: true,
-        //   favoritePlats: true,
-        //   commande: true,
-        //   historique: true
-        // }
-      });
-
-      if (data.length > 0) {
-        return res.status(200).json(data);
-      } else {
-        return res.status(404).json({ message: 'No data found' });
-      }
-    } catch (error) {
-      return handleServerError(res, error);
-    }
-  },
-
-  async getUserById(req, res) {
-    const id = parseInt(req.params.id);
-
-    try {
-      const data = await User.findUnique({ 
-        where: { id },
-        // include: {
-        //   note: true,
-        //   Article: true,
-        //   reservation: true,
-        //   Payement: true,
-        //   favoritePlats: true,
-        //   geolocalisations: true,
-        //   commande: true,
-        //   historique: true
-        // } 
-      });
-
-      if (data) {
-        return res.status(200).json(data);
-      } else {
-        return res.status(404).json({ message: 'Data not found' });
-      }
-    } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
 
   async login(req, res) {
     try {
-      const user = await User.findUnique({ where: { phone: req.body.phone } });
+      const { phone } = req.body;
 
+      const user = await prisma.user.findUnique({ where: { phone } });
       if (!user) {
-        return res.status(401).json({ message: "User doesn't exist" });
+        return res.status(401).json({ message: "Utilisateur non trouvé" });
       }
 
-      const result = await bcrypt.compare(req.body.password, user.password);
+      const token = jwt.sign(
+        { userId: user.id, phone: user.phone },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-      if (result) {
-        const token = jwt.sign(
-          {
-            phone: user.phone,
-            userId: user.id,
-          },
-          'secret'
-        );
-
-        return res.status(200).json({
-          message: 'Authentication successful',
-          user: user,
-          token: token,
-        });
-      } else {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
+      res.status(200).json({
+        message: "Connexion réussie",
+        user: {
+          id: user.id,
+          username: user.username,
+          phone: user.phone
+        },
+        token
+      });
     } catch (error) {
-      return handleServerError(res, error);
+      handleServerError(res, error);
     }
   },
+
+  async getAllUser(req, res) {
+    try {
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          phone: true,
+          image: true,
+          createdAt: true
+        }
+      });
+
+      res.status(200).json(users);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  async getUserById(req, res) {
+    try {
+      const { id } = req.params;
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          commandes: true,
+          reservations: true,
+          favoritePlats: true
+        }
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      res.status(200).json(user);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  async updateUserProfile(req, res) {
+    try {
+      const { id } = req.params;
+      const { username, phone } = req.body;
+
+      const updatedUser = await prisma.user.update({
+        where: { id: parseInt(id) },
+        data: {
+          username,
+          phone,
+          image: req.file?.filename
+        }
+      });
+
+      res.status(200).json({
+        message: "Profil mis à jour avec succès",
+        user: updatedUser
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  async deleteUser(req, res) {
+    try {
+      const { id } = req.params;
+
+      await prisma.user.delete({
+        where: { id: parseInt(id) }
+      });
+
+      res.status(200).json({ message: "Compte utilisateur supprimé avec succès" });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  }
 };
 
 function handleServerError(res, error) {
-  console.error(error);
-  return res.status(500).json({ message: 'Something went wrong', error: error });
+  console.error('Erreur serveur:', error);
+  res.status(500).json({ message: 'Une erreur est survenue', error: error.message });
 }
