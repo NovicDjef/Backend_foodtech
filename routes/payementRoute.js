@@ -34,9 +34,9 @@ router.patch('/payements/:id/status', authMiddleware, PayementController.updateP
 
 // Nouvelles routes pour l'intégration MeSomb
 router.post('/initiate-payment', PayementController.initiatePayment);
-router.get('/application-status', authMiddleware, PayementController.getApplicationStatus);
-router.post('/deposit', authMiddleware, PayementController.makeDeposit);
-router.post('/collect', authMiddleware, PayementController.makeCollect);
+// router.get('/application-status', authMiddleware, PayementController.getApplicationStatus);
+// router.post('/deposit', authMiddleware, PayementController.makeDeposit);
+// router.post('/collect', authMiddleware, PayementController.makeCollect);
 
 
 export default router;

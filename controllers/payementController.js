@@ -342,7 +342,7 @@ import dotenv from 'dotenv';
 const prisma = new PrismaClient();
 
 const payment = new PaymentOperation({
-  // applicationKey: process.env.MESOMB_APP_KEY,
+  applicationKey: process.env.MESOMB_APP_KEY,
   accessKey: process.env.MESOMB_ACCESS_KEY,
   secretKey: process.env.MESOMB_SECRET_KEY
 });
@@ -553,66 +553,6 @@ export default {
   },
 
           //  ******* paiement  **********
-
-
-// Obtenir des transactions par carte d'identité
-async getTransactionsByIds(req, res) {
-  try {
-    const { ids } = req.body;
-    const transactions = await payment.getTransactions(ids);
-    res.status(200).json(transactions);
-  } catch (error) {
-    handleServerError(res, error);
-  }
-},
-
-// Obtenir le statut de la demande
-async getApplicationStatus(req, res) {
-  try {
-    const status = await payment.getStatus();
-    res.status(200).json(status);
-  } catch (error) {
-    handleServerError(res, error);
-  }
-},
-
-// Déposer de l'argent sur un compte
-async makeDeposit(req, res) {
-  try {
-    const { amount, service, receiver } = req.body;
-    const response = await payment.makeDeposit({
-      amount,
-      service,
-      receiver,
-      nonce: RandomGenerator.nonce()
-    });
-    res.status(200).json({
-      operationSuccess: response.isOperationSuccess(),
-      transactionSuccess: response.isTransactionSuccess()
-    });
-  } catch (error) {
-    handleServerError(res, error);
-  }
-},
-
-  // Recouvrement de l'argent sur un compte
-  async makeCollect(req, res) {
-    try {
-      const { amount, service, payer } = req.body;
-      const response = await payment.makeCollect({
-        amount,
-        service,
-        payer,
-        nonce: RandomGenerator.nonce()
-      });
-      res.status(200).json({
-        operationSuccess: response.isOperationSuccess(),
-        transactionSuccess: response.isTransactionSuccess()
-      });
-    } catch (error) {
-      handleServerError(res, error);
-    }
-  },
 
 // Effectuer un dépôt (paiement) via Mobile Money
 async initiatePayment(req, res) {

@@ -135,7 +135,6 @@ model Plats {
   image         String
   description   String?
   prix          Float
-  quantity      Int             @default(1)
   ratings       Float           @default(0)
   articles      Article[]
   notes         Note[]
@@ -153,6 +152,7 @@ model Commande {
   prix           Float
   recommandation String?
   position       String
+  telephone      Int
   status         CommandeStatus @default(EN_COURS)
   user           User?          @relation(fields: [userId], references: [id])
   userId         Int?

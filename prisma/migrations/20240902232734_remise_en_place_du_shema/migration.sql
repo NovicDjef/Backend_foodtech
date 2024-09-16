@@ -143,7 +143,6 @@ CREATE TABLE "Plats" (
     "image" TEXT NOT NULL,
     "description" TEXT,
     "prix" DOUBLE PRECISION NOT NULL,
-    "quantity" INTEGER NOT NULL DEFAULT 1,
     "ratings" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "categorieId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

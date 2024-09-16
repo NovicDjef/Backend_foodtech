@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -128,7 +129,6 @@ async function main() {
             image: faker.image.food(),
             description: faker.lorem.sentence(),
             prix: parseFloat(faker.commerce.price()),
-            quantity: faker.datatype.number({ min: 1, max: 100 }),
             ratings: faker.datatype.float({ min: 0, max: 5, precision: 0.1 }),
             categorieId: categorie.id,
           },
@@ -146,6 +146,7 @@ async function main() {
           quantity: faker.datatype.number({ min: 1, max: 5 }),
           prix: parseFloat(faker.commerce.price()),
           recommandation: faker.lorem.sentence(),
+          telephone: faker.phone,
           position: faker.address.streetAddress(),
           status: faker.helpers.arrayElement(['EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE']),
           userId: user.id,

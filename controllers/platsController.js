@@ -6,7 +6,7 @@ export default  {
   // Créer un nouveau plat
   async createPlat(req, res) {
     try {
-      const { name, image, description, prix, quantity, categorieId } = req.body;
+      const { name, image, description, prix, categorieId } = req.body;
       
       const newPlat = await prisma.plats.create({
         data: {
@@ -14,7 +14,6 @@ export default  {
           image,
           description,
           prix: parseFloat(prix),
-          quantity: parseInt(quantity),
           categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
         },
         include: {
@@ -75,7 +74,7 @@ export default  {
   async updatePlat(req, res) {
     try {
       const { id } = req.params;
-      const { name, image, description, prix, quantity, categorieId } = req.body;
+      const { name, image, description, prix, categorieId } = req.body;
 
       const updatedPlat = await prisma.plats.update({
         where: { id: parseInt(id) },
@@ -84,7 +83,6 @@ export default  {
           image,
           description,
           prix: prix ? parseFloat(prix) : undefined,
-          quantity: quantity ? parseInt(quantity) : undefined,
           categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
         },
         include: {

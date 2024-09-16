@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
@@ -21,23 +22,31 @@ export default  {
         }
       });
 
-      const token = jwt.sign(
-        { userId: newUser.id, phone: newUser.phone },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      // const token = jwt.sign(
+      //   { userId: newUser.id, phone: newUser.phone },
+      //   process.env.JWT_SECRET,
+      //   { expiresIn: '24h' }
+      // );
 
       res.status(201).json({
+        success: true,
         message: "Utilisateur créé avec succès",
+        userMessage: "Votre compte a été créé avec succès. Bienvenue !",
         user: {
           id: newUser.id,
           username: newUser.username,
           phone: newUser.phone
         },
-        token
+        //token
       });
     } catch (error) {
-      handleServerError(res, error);
+      console.error("Erreur lors de l'inscription:", error);
+        res.status(500).json({
+          success: false,
+          message: "Erreur lors de la création de l'utilisateur",
+          userMessage: "Désolé, une erreur est survenue lors de la création de votre compte. Veuillez réessayer plus tard.",
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
   },
 
