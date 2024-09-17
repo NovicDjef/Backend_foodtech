@@ -245,89 +245,9 @@
 //     }
 // },
 
-// // async addPayement(req, res) {
-// //   try {
-// //     const { amount, mode_payement, currency, userId, commandeId, phone, email, description } = req.body;
 
-// //     console.log('Request Body:', req.body);
 
-// //     if (!amount || isNaN(amount)) {
-// //       return res.status(400).json({ message: 'Invalid amount' });
-// //     }
-
-// //     if (!mode_payement) {
-// //       return res.status(400).json({ message: 'Mode de paiement manquant' });
-// //     }
-
-// //     function generateUniqueReference() {
-// //       return 'ref_' + new Date().getTime();
-// //     }
-// //     const uniqueReference = generateUniqueReference();
-// //     console.log(uniqueReference);
-
-// //     const formData = new FormData();
-// //     formData.append('amount', amount);
-// //     formData.append('mode_payement', mode_payement);
-// //     formData.append('currency', currency);
-// //     formData.append('userId', userId);
-// //     formData.append('commandeId', commandeId);
-// //     formData.append('phone', phone);
-// //     formData.append('email', email);
-// //     formData.append('description', description);
-
-// //     // Initiate payement with Notch Pay API
-// //     const payementResponse = await axios.post('https://api.notchpay.co/payements/initialize', formData, {
-// //       headers: {
-// //         'Authorization': 'pk_test.mhjhxBw29HQIMFbLdjb206R5CcUb8wpXMgZUL2fSQqcDAfNvzkUwNpQ34q53K66QvWUVBdii3HTJILAZhwdVQNl9YUanhpps7RNYb0KpJWBDGf3yBHrUSHNbC1Bpa',
-// //         'Accept': 'application/json',
-// //         //...formData.getHeaders()
-// //       }
-// //     });
-// //     console.log('Requête envoyée à Notch Pay:', {
-// //       url: 'https://api.notchpay.co/payments/initialize',
-// //       method: 'POST',
-// //       headers: {
-// //         'Authorization': 'pk_test.mhjhxBw29HQIMFbLdjb206R5CcUb8wpXMgZUL2fSQqcDAfNvzkUwNpQ34q53K66QvWUVBdii3HTJILAZhwdVQNl9YUanhpps7RNYb0KpJWBDGf3yBHrUSHNbC1Bpa',
-// //         'Accept': 'application/json'
-// //       },
-// //       data: Object.fromEntries(formData)
-// //     });
-// //     const { transaction, authorization_url } = payementResponse.data;
-
-// //     const payement = {
-// //       amount: parseInt(amount),
-// //       mode_payement: mode_payement,
-// //       currency: currency,
-// //       userId: parseInt(userId),
-// //       commandeId: parseInt(commandeId),
-// //       phone: phone,
-// //       email: email,
-// //       status: 'pending',
-// //       description: description,
-// //       reference: uniqueReference
-// //     };
-
-// //     const result = await Payement.create(payement);
-
-// //     console.log("Authorization URL:", authorization_url);
-
-// //     res.status(201).json({
-// //       status: "Accepted",
-// //       message: "Payement initialized",
-// //       code: 201,
-// //       transaction,
-// //       authorization_url
-// //     });
-// //   } catch (error) {
-// //     console.error('Error initiating payement:', error.response?.data || error.message);
-// //     res.status(error.response?.status || 500).json({
-// //       message: 'Something went wrong',
-// //       error: error.response?.data || error.message
-// //     });
-// //   }
-// // },
-
-// }
+//}
 
 // async function handleServerError(res, error) {
 //   console.error(error);
@@ -336,7 +256,9 @@
 
 
 import {PaymentOperation, RandomGenerator, Signature} from '@hachther/mesomb';
+
 import { PrismaClient } from '@prisma/client';
+
 import dotenv from 'dotenv';
 
 const prisma = new PrismaClient();
@@ -381,6 +303,88 @@ export default {
     }
   },
 
+
+  async addPayement(req, res) {
+    try {
+      const { amount, mode_payement, currency, userId, commandeId, phone, email, description } = req.body;
+  
+      console.log('Request Body:', req.body);
+  
+      if (!amount || isNaN(amount)) {
+        return res.status(400).json({ message: 'Invalid amount' });
+      }
+  
+      if (!mode_payement) {
+        return res.status(400).json({ message: 'Mode de paiement manquant' });
+      }
+  
+      function generateUniqueReference() {
+        return 'ref_' + new Date().getTime();
+      }
+      const uniqueReference = generateUniqueReference();
+      console.log(uniqueReference);
+  
+      const formData = new FormData();
+      formData.append('amount', amount);
+      formData.append('mode_payement', mode_payement);
+      formData.append('currency', currency);
+      formData.append('userId', userId);
+      formData.append('commandeId', commandeId);
+      formData.append('phone', phone);
+      formData.append('email', email);
+      formData.append('description', description);
+  
+      // Initiate payement with Notch Pay API
+      const payementResponse = await axios.post('https://api.notchpay.co/payements/initialize', formData, {
+        headers: {
+          'Authorization': 'pk_test.mhjhxBw29HQIMFbLdjb206R5CcUb8wpXMgZUL2fSQqcDAfNvzkUwNpQ34q53K66QvWUVBdii3HTJILAZhwdVQNl9YUanhpps7RNYb0KpJWBDGf3yBHrUSHNbC1Bpa',
+          'Accept': 'application/json',
+          ...formData.getHeaders()
+        }
+      });
+      console.log('Requête envoyée à Notch Pay:', {
+        url: 'https://api.notchpay.co/payments/initialize',
+        method: 'POST',
+        headers: {
+          'Authorization': 'pk_test.mhjhxBw29HQIMFbLdjb206R5CcUb8wpXMgZUL2fSQqcDAfNvzkUwNpQ34q53K66QvWUVBdii3HTJILAZhwdVQNl9YUanhpps7RNYb0KpJWBDGf3yBHrUSHNbC1Bpa',
+          'Accept': 'application/json'
+        },
+        data: Object.fromEntries(formData)
+      });
+      const { transaction, authorization_url } = payementResponse.data;
+  
+      const payement = {
+        amount: parseInt(amount),
+        mode_payement: mode_payement,
+        currency: currency,
+        userId: parseInt(userId),
+        commandeId: parseInt(commandeId),
+        phone: phone,
+        email: email,
+        status: 'pending',
+        description: description,
+        reference: uniqueReference
+      };
+  
+      const result = await Payement.create(payement);
+  
+      console.log("Authorization URL:", authorization_url);
+  
+      res.status(201).json({
+        status: "Accepted",
+        message: "Payement initialized",
+        code: 201,
+        transaction,
+        authorization_url
+      });
+    } catch (error) {
+      console.error('Error initiating payement:', error.response?.data || error.message);
+      res.status(error.response?.status || 500).json({
+        message: 'Something went wrong',
+        error: error.response?.data || error.message
+      });
+    }
+  },
   // Obtenir tous les paiements
   async getAllPayements(req, res) {
     try {

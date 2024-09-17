@@ -42,6 +42,10 @@ model User {
   username          String
   phone             String           @unique
   image             String?
+  password          String 
+  avatar            String?
+  resetPasswordOTP  String?
+  resetPasswordOTPExpires DateTime?
   commandes         Commande[]
   historiques       Historique[]
   reservations      Reservation[]

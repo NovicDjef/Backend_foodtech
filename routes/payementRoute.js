@@ -5,7 +5,7 @@
 
 // router.get('/payements', payementController.getAllPayement);
 // router.get('/payement/:id', payementController.getPayementById);
-// router.post('/payement', payementController.addPayement);
+
 // router.patch('/payement/:id', payementController.updatePayement);
 // router.delete('/payement/:id', payementController.deletePayement);
 // router.post('/notchpay', payementController.handleWebhook);
@@ -14,19 +14,21 @@
 
 
 import express from 'express';
+
 import PayementController from '../controllers/payementController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // Routes publiques
+router.post('/addpayement', PayementController.addPayement);
 router.get('/payements', PayementController.getAllPayements);
 router.get('/payements/:id', PayementController.getPayementById);
 router.get('/payements/status/:status', PayementController.getPayementsByStatus);
 router.get('/payements/check/:reference', PayementController.checkPayementStatus);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/payements', authMiddleware, PayementController.createPayement);
+router.post('/payements', PayementController.createPayement);
 router.put('/payements/:id', authMiddleware, PayementController.updatePayement);
 router.delete('/payements/:id', authMiddleware, PayementController.deletePayement);
 router.get('/users/:userId/payements', authMiddleware, PayementController.getUserPayements);
