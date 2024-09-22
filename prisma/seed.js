@@ -86,6 +86,7 @@ async function main() {
       data: {
         username: faker.internet.userName(),
         phone: faker.phone.number(),
+        password: faker.internet.password(),
         image: faker.image.avatar(),
       },
     });
@@ -122,6 +123,17 @@ async function main() {
         },
       });
 
+      for (let j = 0; j < 10; j++) {
+        await prisma.menusrapide.create({
+          data: {
+            name: faker.commerce.productName(),
+            image: faker.image.food(),
+            description: faker.lorem.sentence(),
+            prix: parseFloat(faker.commerce.price()),
+            ratings: faker.datatype.float({ min: 0, max: 5, precision: 0.1 }),
+          },
+        });
+      }
       for (let j = 0; j < 10; j++) {
         await prisma.plats.create({
           data: {

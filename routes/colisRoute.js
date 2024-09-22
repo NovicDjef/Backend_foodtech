@@ -1,6 +1,9 @@
 import express from 'express';
-import ColisController from '../controllers/ColisController.js';
+
+import ColisController from '../controllers/colisController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
+import upload from '../middlewares/multer.js';
+
 
 const router = express.Router();
 
@@ -11,7 +14,7 @@ router.get('/users/:userId/colis', ColisController.getUserColis);
 router.get('/colis/en-livraison', ColisController.getColisEnLivraison);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/colis', authMiddleware, ColisController.createColis);
+router.post('/colis', ColisController.createColis);
 router.put('/colis/:id', authMiddleware, ColisController.updateColis);
 router.delete('/colis/:id', authMiddleware, ColisController.deleteColis);
 router.post('/colis/:id/livraison', authMiddleware, ColisController.addLivraisonToColis);

@@ -1,5 +1,8 @@
 -- CreateEnum
-CREATE TYPE "CommandeStatus" AS ENUM ('EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE');
+CREATE TYPE "CommandeStatus" AS ENUM ('EN_ATTENTE', 'VALIDER', 'EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE');
+
+-- CreateEnum
+CREATE TYPE "ColisStatus" AS ENUM ('EN_ATTENTE', 'VALIDER', 'EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE');
 
 -- CreateEnum
 CREATE TYPE "LivraisonType" AS ENUM ('COMMANDE', 'COLIS');
@@ -54,8 +57,6 @@ CREATE TABLE "User" (
     "image" TEXT,
     "password" TEXT NOT NULL,
     "avatar" TEXT,
-    "resetPasswordOTP" TEXT,
-    "resetPasswordOTPExpires" TIMESTAMP(3),
     "geolocalisationId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -141,6 +142,17 @@ CREATE TABLE "Categorie" (
 );
 
 -- CreateTable
+CREATE TABLE "Complement" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Complement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Plats" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -156,6 +168,20 @@ CREATE TABLE "Plats" (
 );
 
 -- CreateTable
+CREATE TABLE "Menusrapide" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "image" TEXT NOT NULL,
+    "description" TEXT,
+    "prix" DOUBLE PRECISION NOT NULL,
+    "ratings" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Menusrapide_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Commande" (
     "id" SERIAL NOT NULL,
     "quantity" INTEGER NOT NULL,
@@ -163,7 +189,7 @@ CREATE TABLE "Commande" (
     "recommandation" TEXT,
     "position" TEXT NOT NULL,
     "telephone" INTEGER NOT NULL,
-    "status" "CommandeStatus" NOT NULL DEFAULT 'EN_COURS',
+    "status" "CommandeStatus" NOT NULL DEFAULT 'EN_ATTENTE',
     "userId" INTEGER,
     "platsId" INTEGER,
     "livraisonId" INTEGER,
@@ -176,11 +202,15 @@ CREATE TABLE "Commande" (
 -- CreateTable
 CREATE TABLE "Colis" (
     "id" SERIAL NOT NULL,
+    "usernameSend" TEXT NOT NULL,
+    "usernamRecive" TEXT NOT NULL,
+    "phoneRecive" INTEGER NOT NULL,
     "description" TEXT NOT NULL,
-    "poids" DOUBLE PRECISION NOT NULL,
-    "dimensions" TEXT,
+    "poids" DOUBLE PRECISION,
+    "imageColis" TEXT,
     "adresseDepart" TEXT NOT NULL,
     "adresseArrivee" TEXT NOT NULL,
+    "status" "ColisStatus" NOT NULL DEFAULT 'EN_ATTENTE',
     "userId" INTEGER NOT NULL,
     "livraisonId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -315,7 +345,37 @@ CREATE TABLE "FavoritePlats" (
 );
 
 -- CreateTable
+CREATE TABLE "_PlatsToComplement" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "_MenusrapideToNote" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "_CommandeToMenusrapide" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "_ArticleToMenusrapide" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "_FavoritePlatsToPlats" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "_FavoritePlatsToMenusrapide" (
     "A" INTEGER NOT NULL,
     "B" INTEGER NOT NULL
 );
@@ -345,10 +405,40 @@ CREATE UNIQUE INDEX "Payement_commandeId_key" ON "Payement"("commandeId");
 CREATE UNIQUE INDEX "Geolocalisation_adminId_key" ON "Geolocalisation"("adminId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "_PlatsToComplement_AB_unique" ON "_PlatsToComplement"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_PlatsToComplement_B_index" ON "_PlatsToComplement"("B");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_MenusrapideToNote_AB_unique" ON "_MenusrapideToNote"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_MenusrapideToNote_B_index" ON "_MenusrapideToNote"("B");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_CommandeToMenusrapide_AB_unique" ON "_CommandeToMenusrapide"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_CommandeToMenusrapide_B_index" ON "_CommandeToMenusrapide"("B");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_ArticleToMenusrapide_AB_unique" ON "_ArticleToMenusrapide"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_ArticleToMenusrapide_B_index" ON "_ArticleToMenusrapide"("B");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "_FavoritePlatsToPlats_AB_unique" ON "_FavoritePlatsToPlats"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_FavoritePlatsToPlats_B_index" ON "_FavoritePlatsToPlats"("B");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_FavoritePlatsToMenusrapide_AB_unique" ON "_FavoritePlatsToMenusrapide"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_FavoritePlatsToMenusrapide_B_index" ON "_FavoritePlatsToMenusrapide"("B");
 
 -- AddForeignKey
 ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -435,7 +525,37 @@ ALTER TABLE "Historique" ADD CONSTRAINT "Historique_userId_fkey" FOREIGN KEY ("u
 ALTER TABLE "FavoritePlats" ADD CONSTRAINT "FavoritePlats_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "_PlatsToComplement" ADD CONSTRAINT "_PlatsToComplement_A_fkey" FOREIGN KEY ("A") REFERENCES "Complement"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_PlatsToComplement" ADD CONSTRAINT "_PlatsToComplement_B_fkey" FOREIGN KEY ("B") REFERENCES "Menusrapide"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_MenusrapideToNote" ADD CONSTRAINT "_MenusrapideToNote_A_fkey" FOREIGN KEY ("A") REFERENCES "Menusrapide"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_MenusrapideToNote" ADD CONSTRAINT "_MenusrapideToNote_B_fkey" FOREIGN KEY ("B") REFERENCES "Note"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_CommandeToMenusrapide" ADD CONSTRAINT "_CommandeToMenusrapide_A_fkey" FOREIGN KEY ("A") REFERENCES "Commande"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_CommandeToMenusrapide" ADD CONSTRAINT "_CommandeToMenusrapide_B_fkey" FOREIGN KEY ("B") REFERENCES "Menusrapide"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_ArticleToMenusrapide" ADD CONSTRAINT "_ArticleToMenusrapide_A_fkey" FOREIGN KEY ("A") REFERENCES "Article"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_ArticleToMenusrapide" ADD CONSTRAINT "_ArticleToMenusrapide_B_fkey" FOREIGN KEY ("B") REFERENCES "Menusrapide"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "_FavoritePlatsToPlats" ADD CONSTRAINT "_FavoritePlatsToPlats_A_fkey" FOREIGN KEY ("A") REFERENCES "FavoritePlats"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_FavoritePlatsToPlats" ADD CONSTRAINT "_FavoritePlatsToPlats_B_fkey" FOREIGN KEY ("B") REFERENCES "Plats"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_FavoritePlatsToMenusrapide" ADD CONSTRAINT "_FavoritePlatsToMenusrapide_A_fkey" FOREIGN KEY ("A") REFERENCES "FavoritePlats"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_FavoritePlatsToMenusrapide" ADD CONSTRAINT "_FavoritePlatsToMenusrapide_B_fkey" FOREIGN KEY ("B") REFERENCES "Menusrapide"("id") ON DELETE CASCADE ON UPDATE CASCADE;

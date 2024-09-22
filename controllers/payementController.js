@@ -259,6 +259,8 @@ import {PaymentOperation, RandomGenerator, Signature} from '@hachther/mesomb';
 
 import { PrismaClient } from '@prisma/client';
 
+import axios from 'axios'; 
+
 import dotenv from 'dotenv';
 
 const prisma = new PrismaClient();
@@ -307,80 +309,78 @@ export default {
   async addPayement(req, res) {
     try {
       const { amount, mode_payement, currency, userId, commandeId, phone, email, description } = req.body;
-  
       console.log('Request Body:', req.body);
   
       if (!amount || isNaN(amount)) {
         return res.status(400).json({ message: 'Invalid amount' });
       }
-  
       if (!mode_payement) {
         return res.status(400).json({ message: 'Mode de paiement manquant' });
       }
   
-      function generateUniqueReference() {
-        return 'ref_' + new Date().getTime();
-      }
-      const uniqueReference = generateUniqueReference();
-      console.log(uniqueReference);
+      const uniqueReference = 'ref_' + Date.now() + Math.random().toString(36).substring(2, 15);
   
-      const formData = new FormData();
-      formData.append('amount', amount);
-      formData.append('mode_payement', mode_payement);
-      formData.append('currency', currency);
-      formData.append('userId', userId);
-      formData.append('commandeId', commandeId);
-      formData.append('phone', phone);
-      formData.append('email', email);
-      formData.append('description', description);
-  
-      // Initiate payement with Notch Pay API
-      const payementResponse = await axios.post('https://api.notchpay.co/payements/initialize', formData, {
-        headers: {
-          'Authorization': 'pk_test.mhjhxBw29HQIMFbLdjb206R5CcUb8wpXMgZUL2fSQqcDAfNvzkUwNpQ34q53K66QvWUVBdii3HTJILAZhwdVQNl9YUanhpps7RNYb0KpJWBDGf3yBHrUSHNbC1Bpa',
-          'Accept': 'application/json',
-          ...formData.getHeaders()
-        }
-      });
-      console.log('Requête envoyée à Notch Pay:', {
-        url: 'https://api.notchpay.co/payments/initialize',
-        method: 'POST',
-        headers: {
-          'Authorization': 'pk_test.mhjhxBw29HQIMFbLdjb206R5CcUb8wpXMgZUL2fSQqcDAfNvzkUwNpQ34q53K66QvWUVBdii3HTJILAZhwdVQNl9YUanhpps7RNYb0KpJWBDGf3yBHrUSHNbC1Bpa',
-          'Accept': 'application/json'
-        },
-        data: Object.fromEntries(formData)
-      });
-      const { transaction, authorization_url } = payementResponse.data;
-  
-      const payement = {
-        amount: parseInt(amount),
-        mode_payement: mode_payement,
-        currency: currency,
-        userId: parseInt(userId),
-        commandeId: parseInt(commandeId),
-        phone: phone,
-        email: email,
-        status: 'pending',
-        description: description,
-        reference: uniqueReference
+      // Préparation des données pour Notch Pay
+      const paymentData = {
+        amount: parseInt(amount), // Assurez-vous que amount est un nombre
+        currency,
+        reference: uniqueReference,
+        email,
+        phone,
+        description,
+        callback: 'https://votre-site.com/callback', // URL de callback
+        return_url: 'https://votre-site.com/return', // URL de retour après paiement
+        channels: [mode_payement] // Mode de paiement sous forme de tableau
       };
   
-      const result = await Payement.create(payement);
+      console.log('Données envoyées à Notch Pay:', paymentData);
   
-      console.log("Authorization URL:", authorization_url);
+      // Récupération de la clé API depuis les variables d'environnement
+      const apiKey = process.env.NOTCH_PAY_PUBLIC_KEY;
+      if (!apiKey) {
+        throw new Error('La clé API Notch Pay n\'est pas définie');
+      }
+  
+      // Appel à l'API Notch Pay
+      const payementResponse = await axios.post('https://api.notchpay.co/payments/initialize', paymentData, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+  
+      console.log('Réponse de Notch Pay:', payementResponse.data);
+  
+      const { transaction, authorization_url } = payementResponse.data;
+  
+      // Enregistrement du paiement dans la base de données
+      const payement = {
+        amount: parseInt(amount),
+        mode_payement,
+        currency,
+        userId: parseInt(userId),
+        commandeId: parseInt(commandeId),
+        phone,
+        email,
+        status: 'pending',
+        description,
+        reference: uniqueReference
+      };
+      const result = await Payement.create(payement);
   
       res.status(201).json({
         status: "Accepted",
-        message: "Payement initialized",
+        message: "Paiement initialisé",
         code: 201,
         transaction,
         authorization_url
       });
+  
     } catch (error) {
-      console.error('Error initiating payement:', error.response?.data || error.message);
+      console.error('Erreur lors de l\'initialisation du paiement:', error.response?.data || error.message);
       res.status(error.response?.status || 500).json({
-        message: 'Something went wrong',
+        message: 'Une erreur est survenue',
         error: error.response?.data || error.message
       });
     }

@@ -9,6 +9,7 @@ const router = express.Router();
 router.post("/usersIdByPhone", UserController.PostByPhone);
 router.post("/signup", upload.single('image'), UserController.signUpUser);
 router.post('/login', UserController.login);
+router.post("/resetPassword", UserController.resetPassword);
 router.get("/users", UserController.getAllUser);
 router.get("/users/:id", authMiddleware, UserController.getUserById);
 router.put("/users/:id", authMiddleware, upload.single('image'), UserController.updateUserProfile);

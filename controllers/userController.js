@@ -11,85 +11,72 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 
 
 export default  {
-  async signUpUser(req, res) {
-    try {
-      const { username, phone, password, avatar } = req.body;
-  
-      // Validation des entrées
-      if (!username || !phone || !password) {
-        return res.status(400).json({
-          success: false,
-          message: "Tous les champs requis doivent être remplis",
-          userMessage: "Veuillez remplir tous les champs obligatoires."
-        });
-      }
-  
-      // Vérification de l'existence de l'utilisateur
-      const existingUser = await prisma.user.findUnique({ where: { phone } });
-      if (existingUser) {
-        return res.status(409).json({
-          success: false,
-          message: "Un utilisateur avec ce numéro de téléphone existe déjà",
-          userMessage: "Ce numéro de téléphone est déjà associé à un compte."
-        });
-      }
-  
-      // Hachage du mot de passe
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-  
-      // Création de l'utilisateur
-      const newUser = await prisma.user.create({
-        data: {
-          username,
-          phone,
-          password: hashedPassword,
-          avatar: req.file?.filename
-        }
-      });
-  
-      // Génération du token JWT
-      const token = jwt.sign(
-        { userId: newUser.id, phone: newUser.phone },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-  
-      // Réponse au client
-      res.status(201).json({
-        success: true,
-        message: "Utilisateur créé avec succès",
-        userMessage: "Votre compte a été créé avec succès. Bienvenue !",
-        user: {
-          id: newUser.id,
-          username: newUser.username,
-          phone: newUser.phone,
-          avatar: newUser.avatar
-        },
-        token
-      });
-  
-    } catch (error) {
-      console.error("Erreur lors de l'inscription:", error);
-      res.status(500).json({
-        success: false,
-        message: "Erreur lors de la création de l'utilisateur",
-        userMessage: "Désolé, une erreur est survenue lors de la création de votre compte. Veuillez réessayer plus tard.",
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
-
-async PostByPhone(req, res) {
+async signUpUser(req, res) {
   try {
-    const { phone } = req.body;
-    const user = await prisma.user.findUnique({ where: { phone } });
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    const { username, phone, password, avatar } = req.body;
+
+    // Validation des entrées
+    if (!username || !phone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Tous les champs requis doivent être remplis",
+        userMessage: "Veuillez remplir tous les champs obligatoires."
+      });
     }
-    res.status(200).json(user);
+
+    // Vérification de l'existence de l'utilisateur
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Un utilisateur avec ce numéro de téléphone existe déjà",
+        userMessage: "Ce numéro de téléphone est déjà associé à un compte."
+      });
+    }
+
+    // Hachage du mot de passe
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Création de l'utilisateur
+    const newUser = await prisma.user.create({
+      data: {
+        username,
+        phone,
+        password: hashedPassword,
+        avatar: req.file?.filename
+      }
+    });
+
+    // Génération du token JWT
+    const token = jwt.sign(
+      { userId: newUser.id, username: newUser.username, phone: newUser.phone, avatar: newUser.avatar },
+      process.env.JWT_SECRET,
+      { expiresIn: '4383h' }
+    );
+
+    // Réponse au client
+    res.status(201).json({
+      success: true,
+      message: "Utilisateur créé avec succès",
+      userMessage: "Votre compte a été créé avec succès. Bienvenue !",
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        phone: newUser.phone,
+        avatar: newUser.avatar
+      },
+      token
+    });
+
   } catch (error) {
-    handleServerError(res, error);
+    console.error("Erreur lors de l'inscription:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la création de l'utilisateur",
+      userMessage: "Désolé, une erreur est survenue lors de la création de votre compte. Veuillez réessayer plus tard.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 },
 
@@ -128,9 +115,9 @@ async login(req, res) {
 
     // Génération du token JWT
     const token = jwt.sign(
-      { userId: user.id, phone: user.phone },
+      { userId: user.id, phone: user.phone, username: user.username, avatar: user.avatar },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '4383h' }
     );
 
     // Réponse au client
@@ -158,87 +145,83 @@ async login(req, res) {
   }
 },
 
-
-  async getAllUser(req, res) {
-    try {
-      const users = await prisma.user.findMany({
-        select: {
-          id: true,
-          username: true,
-          phone: true,
-          image: true,
-          createdAt: true
-        }
-      });
-
-      res.status(200).json(users);
-    } catch (error) {
-      handleServerError(res, error);
+async PostByPhone(req, res) {
+  try {
+    const { phone } = req.body;
+    const user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
-  },
+    res.status(200).json(user);
+  } catch (error) {
+    handleServerError(res, error);
+  }
+},
 
-  async getUserById(req, res) {
-    try {
-      const { id } = req.params;
-      const user = await prisma.user.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          commandes: true,
-          reservations: true,
-          favoritePlats: true
-        }
+// Étape 2: Vérification de l'OTP et réinitialisation du mot de passe
+async resetPassword(req, res) {
+  try {
+    const { phone, newPassword } = req.body;
+
+    // Validation des entrées
+    if (!phone || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Le numéro de téléphone et le nouveau mot de passe sont requis",
+        userMessage: "Veuillez fournir votre numéro de téléphone et un nouveau mot de passe."
       });
-
-      if (!user) {
-        return res.status(404).json({ message: "Utilisateur non trouvé" });
-      }
-
-      res.status(200).json(user);
-    } catch (error) {
-      handleServerError(res, error);
     }
-  },
 
-  async updateUserProfile(req, res) {
-    try {
-      const { id } = req.params;
-      const { username, phone } = req.body;
-
-      const updatedUser = await prisma.user.update({
-        where: { id: parseInt(id) },
-        data: {
-          username,
-          phone,
-          image: req.file?.filename
-        }
+    // Vérifier si l'utilisateur existe
+    const user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Utilisateur non trouvé",
+        userMessage: "Aucun compte n'est associé à ce numéro de téléphone."
       });
-
-      res.status(200).json({
-        message: "Profil mis à jour avec succès",
-        user: updatedUser
-      });
-    } catch (error) {
-      handleServerError(res, error);
     }
-  },
 
-  async deleteUser(req, res) {
-    try {
-      const { id } = req.params;
+    // Hasher le nouveau mot de passe
+    const saltRounds = 10; // Vous pouvez ajuster ce nombre selon vos besoins de sécurité
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-      await prisma.user.delete({
-        where: { id: parseInt(id) }
-      });
+    // Mettre à jour le mot de passe
+    await prisma.user.update({
+      where: { id: user.id, phone: user.phone, username: user.username,},
+      data: { password: hashedPassword }
+    });
 
-      res.status(200).json({ message: "Compte utilisateur supprimé avec succès" });
-    } catch (error) {
-      handleServerError(res, error);
-    }
-  },
+    // Générer un nouveau token JWT
+    const token = jwt.sign(
+      { userId: user.id, phone: user.phone, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '4383h' }
+    );
 
-  // Fonction pour générer un code OTP
+    res.status(200).json({
+      success: true,
+      message: "Mot de passe réinitialisé avec succès",
+      userMessage: "Votre mot de passe a été réinitialisé. Vous êtes maintenant connecté.",
+      user: {
+        id: user.id,
+        username: user.username,
+        phone: user.phone
+      },
+      token
+    });
 
-  
+  } catch (error) {
+    console.error("Erreur lors de la réinitialisation du mot de passe:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la réinitialisation du mot de passe",
+      userMessage: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+},
+
 // Étape 1: Demande de réinitialisation et envoi d'OTP
 async requestPasswordReset(req, res){
   try {
@@ -288,70 +271,87 @@ async requestPasswordReset(req, res){
   }
 },
 
-// Étape 2: Vérification de l'OTP et réinitialisation du mot de passe
-async resetPassword(req, res) {
-  try {
-    const { phone, otp, newPassword } = req.body;
-
-    // Vérifier l'utilisateur et l'OTP
-    const user = await prisma.user.findFirst({
-      where: { 
-        phone,
-        resetPasswordOTP: otp,
-        resetPasswordOTPExpires: { gt: new Date() }
-      }
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Code OTP invalide ou expiré",
-        userMessage: "Le code de vérification est invalide ou a expiré. Veuillez réessayer."
+  async getAllUser(req, res) {
+    try {
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          phone: true,
+          image: true,
+          password: true,
+          createdAt: true
+        }
       });
+
+      res.status(200).json(users);
+    } catch (error) {
+      handleServerError(res, error);
     }
+  },
 
-    // Hasher le nouveau mot de passe
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+  async getUserById(req, res) {
+    try {
+      const { id } = req.params;
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          commandes: true,
+          reservations: true,
+          favoritePlats: true
+        }
+      });
 
-    // Mettre à jour le mot de passe et réinitialiser l'OTP
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetPasswordOTP: null,
-        resetPasswordOTPExpires: null
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
       }
-    });
 
-    // Générer un nouveau token JWT
-    const token = jwt.sign(
-      { userId: user.id, phone: user.phone },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+      res.status(200).json(user);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
 
-    res.status(200).json({
-      success: true,
-      message: "Mot de passe réinitialisé avec succès",
-      userMessage: "Votre mot de passe a été réinitialisé. Vous êtes maintenant connecté.",
-      user: {
-        id: user.id,
-        username: user.username,
-        phone: user.phone
-      },
-      token
-    });
+  async updateUserProfile(req, res) {
+    try {
+      const { id } = req.params;
+      const { username, phone } = req.body;
 
-  } catch (error) {
-    console.error("Erreur lors de la réinitialisation du mot de passe:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la réinitialisation du mot de passe",
-      userMessage: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-}
+      const updatedUser = await prisma.user.update({
+        where: { id: parseInt(id) },
+        data: {
+          username,
+          phone,
+          image: req.file?.filename,
+          password: true,
+        }
+      });
+
+      res.status(200).json({
+        message: "Profil mis à jour avec succès",
+        user: updatedUser
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  async deleteUser(req, res) {
+    try {
+      const { id } = req.params;
+
+      await prisma.user.delete({
+        where: { id: parseInt(id) }
+      });
+
+      res.status(200).json({ message: "Compte utilisateur supprimé avec succès" });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
+
+  // Fonction pour générer un code OTP
+
 
 };
 

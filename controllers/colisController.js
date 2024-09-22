@@ -6,15 +6,18 @@ export default {
   // Créer un nouveau colis
   async createColis(req, res) {
     try {
-      const { description, poids, dimensions, adresseDepart, adresseArrivee, userId } = req.body;
+      const { description, poids, adresseDepart, adresseArrivee, imageColis, usernameSend, usernamRecive, phoneRecive, userId } = req.body;
       
       const newColis = await prisma.colis.create({
         data: {
           description,
           poids: parseFloat(poids),
-          dimensions,
           adresseDepart,
           adresseArrivee,
+          imageColis,
+          usernameSend,
+          usernamRecive,
+          phoneRecive: phoneRecive ? parseFloat(phoneRecive) : undefined, 
           user: { connect: { id: parseInt(userId) } },
         },
         include: {
@@ -74,14 +77,17 @@ export default {
   async updateColis(req, res) {
     try {
       const { id } = req.params;
-      const { description, poids, dimensions, adresseDepart, adresseArrivee } = req.body;
+      const { description, poids, adresseDepart, adresseArrivee } = req.body;
 
       const updatedColis = await prisma.colis.update({
         where: { id: parseInt(id) },
         data: {
           description,
           poids: poids ? parseFloat(poids) : undefined,
-          dimensions,
+          imageColis,
+          sernameSend,
+          usernamRecive,
+          phoneRecive: phoneRecive ? parseFloat(phoneRecive) : undefined, 
           adresseDepart,
           adresseArrivee,
         },

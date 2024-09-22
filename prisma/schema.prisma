@@ -44,8 +44,6 @@ model User {
   image             String?
   password          String 
   avatar            String?
-  resetPasswordOTP  String?
-  resetPasswordOTPExpires DateTime?
   commandes         Commande[]
   historiques       Historique[]
   reservations      Reservation[]
@@ -133,6 +131,17 @@ model Categorie {
   updatedAt   DateTime  @updatedAt
 }
 
+model Complement {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       Float
+  plats       Plats[]  @relation("PlatsToComplement")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Menusrapide Menusrapide[] @relation("PlatsToComplement")
+}
+
 model Plats {
   id            Int             @id @default(autoincrement())
   name          String
@@ -144,8 +153,25 @@ model Plats {
   notes         Note[]
   commandes     Commande[]
   favoritePlats FavoritePlats[]
+  complements   Complement[]   @relation("PlatsToComplement")
   categorie     Categorie?      @relation(fields: [categorieId], references: [id])
   categorieId   Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Menusrapide {
+  id            Int             @id @default(autoincrement())
+  name          String
+  image         String
+  description   String?
+  prix          Float
+  ratings       Float           @default(0)
+  articles      Article[]
+  notes         Note[]
+  commandes     Commande[]
+  favoritePlats FavoritePlats[]
+  complements   Complement[]   @relation("PlatsToComplement")
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -157,7 +183,7 @@ model Commande {
   recommandation String?
   position       String
   telephone      Int
-  status         CommandeStatus @default(EN_COURS)
+  status         CommandeStatus @default(EN_ATTENTE)
   user           User?          @relation(fields: [userId], references: [id])
   userId         Int?
   plat           Plats?         @relation(fields: [platsId], references: [id])
@@ -167,15 +193,21 @@ model Commande {
   payment        Payement?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  Menusrapide Menusrapide[]
 }
 
 model Colis {
   id              Int       @id @default(autoincrement())
+  usernameSend String
+  usernamRecive   String
+  phoneRecive     Int
   description     String
-  poids           Float
-  dimensions      String?
+  poids           Float?
+  imageColis      String?
   adresseDepart   String
   adresseArrivee  String
+  status         ColisStatus @default(EN_ATTENTE)
   user            User      @relation(fields: [userId], references: [id])
   userId          Int
   livraison       Livraison? @relation(fields: [livraisonId], references: [id])
@@ -196,6 +228,8 @@ model Article {
   platsId      Int?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+
+  Menusrapide Menusrapide[]
 }
 
 model Livraison {
@@ -221,6 +255,8 @@ model Note {
   platsId   Int?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  Menusrapide Menusrapide[]
 }
 
 model Reservation {
@@ -295,14 +331,26 @@ model FavoritePlats {
   user   User?   @relation(fields: [userId], references: [id])
   userId Int?
   plats  Plats[]
+
+  Menusrapide Menusrapide[]
 }
 
 enum CommandeStatus {
+  EN_ATTENTE
+  VALIDER
   EN_COURS
   PAYEE
   LIVREE
   ANNULEE
 }
+ enum ColisStatus {
+   EN_ATTENTE
+  VALIDER
+  EN_COURS
+  PAYEE
+  LIVREE
+  ANNULEE
+ }
 
 enum LivraisonType {
   COMMANDE

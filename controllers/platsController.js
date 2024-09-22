@@ -30,6 +30,16 @@ export default  {
     }
   },
 
+// async  getPlatWithComplements(req, res) {
+//     const plat = await prisma.plats.findUnique({
+//       where: { id: platId },
+//       include: {
+//         complements: true,
+//       },
+//     })
+//     return plat
+//   },
+
   // Obtenir tous les plats
   async getAllPlats(req, res) {
     try {

@@ -11,7 +11,7 @@ router.get('/menus/:id/categories', MenuController.getCategoriesByMenu);
 router.get('/restaurants/:restaurantId/menus', MenuController.getMenusByRestaurant);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/menus', authMiddleware, MenuController.createMenu);
+router.post('/menus', MenuController.createMenu);
 router.put('/menus/:id', authMiddleware, MenuController.updateMenu);
 router.delete('/menus/:id', authMiddleware, MenuController.deleteMenu);
 router.post('/menus/:menuId/categories', authMiddleware, MenuController.addCategoryToMenu);
