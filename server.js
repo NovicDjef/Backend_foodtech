@@ -24,8 +24,7 @@ import villeRoute from "./routes/villeRoute.js"
 import otpRoute from "./routes/otpRoute.js"
 import heureOuveruteRoute from "./routes/heureOuveruteRoute.js"
 import colisRoute from "./routes/colisRoute.js"
-// import userRoleRoute from "./routes/userRoleRoute.js"
-
+import menusRapideRoute from "./routes/menusRapideRoute.js"
 
 dotenv.config();
 
@@ -79,7 +78,7 @@ server.use("/", restaurantRoute)
 server.use("/", villeRoute)
 server.use("/", otpRoute)
 server.use("/", colisRoute)
-// server.use("/", userRoleRoute)
+server.use("/", menusRapideRoute)
 server.use("/", heureOuveruteRoute)
 
 server.use('/images', express.static('images'))
