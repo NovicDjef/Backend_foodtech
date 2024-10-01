@@ -199,11 +199,12 @@ model Commande {
 
 model Colis {
   id              Int       @id @default(autoincrement())
-  usernameSend String
+  usernameSend    String
   usernamRecive   String
   phoneRecive     Int
   description     String
   poids           Float?
+  prix            Float
   imageColis      String?
   adresseDepart   String
   adresseArrivee  String
@@ -318,6 +319,14 @@ model Historique {
   updatedAt DateTime @updatedAt
 }
 
+model Notifications {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model ServiceLivraison {
   id          Int         @id @default(autoincrement())
   name        String
@@ -334,7 +343,22 @@ model FavoritePlats {
 
   Menusrapide Menusrapide[]
 }
+ 
+model PrixLivraisonColis {
+  id            Int     @id @default(autoincrement())
+  montant       Float
+  description   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 
+model PrixLivraisonCommande {
+  id            Int     @id @default(autoincrement())
+  montant       Float
+  description   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 enum CommandeStatus {
   EN_ATTENTE
   VALIDER
@@ -344,7 +368,7 @@ enum CommandeStatus {
   ANNULEE
 }
  enum ColisStatus {
-   EN_ATTENTE
+  EN_ATTENTE
   VALIDER
   EN_COURS
   PAYEE

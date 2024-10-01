@@ -30,6 +30,12 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "Utilisateur non trouvé" });
     }
 
+     // Vérifier si l'utilisateur a un numéro de téléphone valide
+     if (!user.phone || user.phone === "") {
+      return res.status(400).json({ message: "Veuillez vérifier votre numéro de téléphone." });
+    }
+
+
     // Ajouter l'utilisateur à l'objet req pour une utilisation ultérieure
     req.user = user;
 

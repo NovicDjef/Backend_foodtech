@@ -14,7 +14,7 @@ router.get('/users/:userId/colis', ColisController.getUserColis);
 router.get('/colis/en-livraison', ColisController.getColisEnLivraison);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/colis', ColisController.createColis);
+router.post('/colis', upload.single('imageColis'), authMiddleware, ColisController.createColis);
 router.put('/colis/:id', authMiddleware, ColisController.updateColis);
 router.delete('/colis/:id', authMiddleware, ColisController.deleteColis);
 router.post('/colis/:id/livraison', authMiddleware, ColisController.addLivraisonToColis);

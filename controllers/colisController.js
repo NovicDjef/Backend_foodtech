@@ -5,20 +5,25 @@ const prisma = new PrismaClient();
 export default {
   // Créer un nouveau colis
   async createColis(req, res) {
+   
     try {
-      const { description, poids, adresseDepart, adresseArrivee, imageColis, usernameSend, usernamRecive, phoneRecive, userId } = req.body;
-      
+      const { description, poids, adresseDepart, adresseArrivee, usernameSend, usernamRecive, phoneRecive, prix } = req.body;
+      const userId = req.user.id;
+      const imagePath = req.file ? `/images/${req.file.filename}` : null;
+      console.log("imageColis :", imagePath)
       const newColis = await prisma.colis.create({
         data: {
           description,
           poids: parseFloat(poids),
           adresseDepart,
           adresseArrivee,
-          imageColis,
+          imageColis: imagePath,
+          prix: parseFloat(prix),
+          status: 'EN_ATTENTE', 
           usernameSend,
           usernamRecive,
-          phoneRecive: phoneRecive ? parseFloat(phoneRecive) : undefined, 
-          user: { connect: { id: parseInt(userId) } },
+          phoneRecive: phoneRecive ? parseFloat(phoneRecive) : undefined,
+          user: { connect: { id: userId } },
         },
         include: {
           user: true,

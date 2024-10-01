@@ -25,6 +25,9 @@ import otpRoute from "./routes/otpRoute.js"
 import heureOuveruteRoute from "./routes/heureOuveruteRoute.js"
 import colisRoute from "./routes/colisRoute.js"
 import menusRapideRoute from "./routes/menusRapideRoute.js"
+import prixRoute from "./routes/prixRoute.js"
+import notificationRoute from "./routes/notificationRoute.js"
+import { Expo } from 'expo-server-sdk';
 
 dotenv.config();
 
@@ -53,6 +56,7 @@ next();
 }
 });
 
+global.expo = new Expo();
 server.get('/', (req, res) => {
 res.status(200).json({
 message: 'Server is working !',
@@ -60,7 +64,7 @@ message: 'Server is working !',
 })
 
 server.use("/", userRoute)
-// server.use("/", roleRoute)
+server.use("/", prixRoute)
 server.use("/", adminRoute)
 server.use("/", slideRoute)
 server.use("/", commandeRoute)
@@ -80,8 +84,10 @@ server.use("/", otpRoute)
 server.use("/", colisRoute)
 server.use("/", menusRapideRoute)
 server.use("/", heureOuveruteRoute)
+server.use("/", notificationRoute)
 
 server.use('/images', express.static('images'))
+
 
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0'; // Écouter sur toutes les interfaces réseau

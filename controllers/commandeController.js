@@ -71,68 +71,96 @@ export default {
   //     });
   //   }
   // },
-  async createCommande(req, res) {
-    console.log("Corps de la requête reçue:", req.body);
+ async createCommande(req, res) {
+  console.log("Corps de la requête reçue:", req.body);
+
+  const commandeData = req.body;
+  const userId = req.user.id;
   
-    // Extraction des données de l'objet commandeData
-    const commandeData  = req.body;
+  // Vérifie que le corps de la requête contient bien des données
+  if (!commandeData || Object.keys(commandeData).length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Aucune donnée de commande n'a été envoyée",
+      userMessage: "Les données de la commande sont manquantes."
+    });
+  }
+
+  const { platsId, quantity, prix, recommandation, position, telephone } = commandeData;
+
+  // Vérification de chaque champ et retour d'un message spécifique
+  if (!platsId) {
+    return res.status(400).json({
+      success: false,
+      message: "Le champ platsId est manquant",
+      userMessage: "Veuillez fournir l'identifiant du plat."
+    });
+  }
+
+  if (!quantity) {
+    return res.status(400).json({
+      success: false,
+      message: "Le champ quantity est manquant",
+      userMessage: "Veuillez spécifier la quantité."
+    });
+  }
+
+  if (!prix) {
+    return res.status(400).json({
+      success: false,
+      message: "Le champ prix est manquant",
+      userMessage: "Veuillez indiquer le prix."
+    });
+  }
+
+  // Optionnel : Vérifier le numéro de téléphone
+  if (!telephone) {
+    return res.status(400).json({
+      success: false,
+      message: "Le champ telephone est manquant",
+      userMessage: "Veuillez fournir un numéro de téléphone."
+    });
+  }
+
+  try {
+    // Création de la commande si toutes les données sont présentes
+    const newCommande = await prisma.commande.create({
+      data: {
+        quantity: parseInt(quantity),
+        prix: parseFloat(prix),
+        recommandation: recommandation || '',
+        position: position || '',
+        status: "EN_ATTENTE",
+        telephone: telephone ? parseInt(telephone) : null,
+        user: { connect: { id: parseInt(userId) } },
+        plat: { connect: { id: parseInt(platsId) } },
+      },
+      include: {
+        user: true,
+        plat: true,
+      },
+    });
+
+    console.log("Nouvelle commande créée:", newCommande);
+
+    res.status(201).json({
+      success: true,
+      message: "Commande créée avec succès",
+      userMessage: "Votre commande a été passée avec succès !",
+      commande: newCommande
+    });
+  } catch (error) {
+    console.error('Erreur lors de la création de la commande:', error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la création de la commande",
+      userMessage: "Désolé, une erreur est survenue lors de la passation de votre commande. Veuillez réessayer.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+},
+
   
-    if (!commandeData) {
-      return res.status(400).json({
-        success: false,
-        message: "Données de commande manquantes",
-        userMessage: "Les données de la commande sont manquantes."
-      });
-    }
-  
-    const { userId, platsId, quantity, prix, recommandation, position, status, telephone } = commandeData;
-  
-    console.log("Données extraites:", commandeData);
-  
-    if (!userId || !platsId || !quantity || !prix) {
-      return res.status(400).json({
-        success: false,
-        message: "Données essentielles manquantes",
-        userMessage: "Veuillez fournir toutes les informations nécessaires pour la commande."
-      });
-    }
-  
-    try {
-      const newCommande = await prisma.commande.create({
-        data: {
-          quantity: parseInt(quantity),
-          prix: parseFloat(prix),
-          recommandation: recommandation || '',
-          position: position || '',
-          status: status || 'EN_COURS',
-          telephone: parseInt(telephone) || '',
-          user: { connect: { id: parseInt(userId) } },
-          plat: { connect: { id: parseInt(platsId) } },
-        },
-        include: {
-          user: true,
-          plat: true,
-        },
-      });
-  
-      console.log("Nouvelle commande créée:", newCommande);
-  
-      res.status(201).json({
-        success: true,
-        message: "Commande créée avec succès",
-        userMessage: "Votre commande a été passée avec succès !",
-        commande: newCommande
-      });
-    } catch (error) {
-      console.error('Erreur lors de la création de la commande:', error);
-      res.status(500).json({
-        success: false,
-        message: "Erreur lors de la création de la commande",
-        userMessage: "Désolé, une erreur est survenue lors de la passation de votre commande. Veuillez réessayer.",
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  },
 
   // Obtenir toutes les commandes
   async getAllCommandes(req, res) {
@@ -158,12 +186,12 @@ export default {
       const { id } = req.params;
       const commande = await prisma.commande.findUnique({
         where: { id: parseInt(id) },
-        include: {
-          user: true,
-          plats: true,
-          payement: true,
-          livraison: true,
-        }
+        // include: {
+        //   user: true,
+        //   plats: true,
+        //   payement: true,
+        //   livraison: true,
+        // }
       });
 
       if (!commande) {
@@ -171,36 +199,6 @@ export default {
       }
 
       res.status(200).json(commande);
-    } catch (error) {
-      handleServerError(res, error);
-    }
-  },
-
-  // Mettre à jour une commande
-  async updateCommande(req, res) {
-    try {
-      const { id } = req.params;
-      const { quantity, prix, recommandation, position, status } = req.body;
-
-      const updatedCommande = await prisma.commande.update({
-        where: { id: parseInt(id) },
-        data: {
-          quantity: quantity ? parseInt(quantity) : undefined,
-          prix: prix ? parseFloat(prix) : undefined,
-          recommandation,
-          position,
-          status,
-        },
-        include: {
-          user: true,
-          plats: true,
-        },
-      });
-
-      res.status(200).json({
-        message: "Commande mise à jour avec succès",
-        commande: updatedCommande
-      });
     } catch (error) {
       handleServerError(res, error);
     }
