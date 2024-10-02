@@ -1,3 +1,11 @@
 node_modules
 # Keep environment variables out of version control
 .env
+POSTGRES_URL="postgres://default:Wq8GSTAElKz2@ep-muddy-bar-a4bdyzdb-pooler.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require"
+POSTGRES_PRISMA_URL="postgres://default:Wq8GSTAElKz2@ep-muddy-bar-a4bdyzdb-pooler.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require&pgbouncer=true&connect_timeout=15"
+POSTGRES_URL_NO_SSL="postgres://default:Wq8GSTAElKz2@ep-muddy-bar-a4bdyzdb-pooler.us-east-1.aws.neon.tech:5432/verceldb"
+POSTGRES_URL_NON_POOLING="postgres://default:Wq8GSTAElKz2@ep-muddy-bar-a4bdyzdb.us-east-1.aws.neon.tech:5432/verceldb?sslmode=require"
+POSTGRES_USER="default"
+POSTGRES_HOST="ep-muddy-bar-a4bdyzdb-pooler.us-east-1.aws.neon.tech"
+POSTGRES_PASSWORD="Wq8GSTAElKz2"
+POSTGRES_DATABASE="verceldb"
