@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 export default {
   // Créer un prix de livraison pour une commande
   async createCommandePrix(req, res) {
-    const { montant, description } = req.body;
+    const { montant, description, status } = req.body;
     try {
       const newPrix = await prisma.prixLivraisonCommande.create({
-        data: { montant, description }
+        data: { montant, description, status }
       });
       res.status(201).json({ message: "Prix de livraison pour commande créé", prix: newPrix });
     } catch (error) {
@@ -18,10 +18,10 @@ export default {
 
   // Créer un prix de livraison pour un colis
   async createColisPrix(req, res) {
-    const { montant, description } = req.body;
+    const { montant, description, status } = req.body;
     try {
       const newPrix = await prisma.prixLivraisonColis.create({
-        data: { montant, description }
+        data: { montant, description, status }
       });
       res.status(201).json({ message: "Prix de livraison pour colis créé", prix: newPrix });
     } catch (error) {
@@ -52,11 +52,11 @@ export default {
   // Modifier un prix de livraison pour une commande
   async updateCommandePrix(req, res) {
     const { id } = req.params;
-    const { montant, description } = req.body;
+    const { montant, description, status } = req.body;
     try {
       const updatedPrix = await prisma.prixLivraisonCommande.update({
         where: { id: parseInt(id) },
-        data: { montant, description }
+        data: { montant, description, status }
       });
       res.status(200).json({ message: "Prix de livraison pour commande mis à jour", prix: updatedPrix });
     } catch (error) {
@@ -67,11 +67,11 @@ export default {
   // Modifier un prix de livraison pour un colis
   async updateColisPrix(req, res) {
     const { id } = req.params;
-    const { montant, description } = req.body;
+    const { montant, description, status } = req.body;
     try {
       const updatedPrix = await prisma.prixLivraisonColis.update({
         where: { id: parseInt(id) },
-        data: { montant, description }
+        data: { montant, description, status }
       });
       res.status(200).json({ message: "Prix de livraison pour colis mis à jour", prix: updatedPrix });
     } catch (error) {
