@@ -4,10 +4,8 @@ import bcrypt from 'bcrypt';
 
 import jwt from 'jsonwebtoken';
 
-import twilio from 'twilio';
 
 const prisma = new PrismaClient();
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 
 export default  {
@@ -222,54 +220,6 @@ async resetPassword(req, res) {
   }
 },
 
-// Étape 1: Demande de réinitialisation et envoi d'OTP
-async requestPasswordReset(req, res){
-  try {
-    const { phone } = req.body;
-
-    // Vérifier si l'utilisateur existe
-    const user = await prisma.user.findUnique({ where: { phone } });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Utilisateur non trouvé",
-        userMessage: "Aucun compte n'est associé à ce numéro de téléphone."
-      });
-    }
-
-    // Générer et sauvegarder l'OTP
-    const otp = generateOTP();
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { 
-        resetPasswordOTP: otp,
-        resetPasswordOTPExpires: new Date(Date.now() + 10 * 60 * 1000) // OTP valide pendant 10 minutes
-      }
-    });
-
-    // Envoyer l'OTP via Twilio
-    await client.messages.create({
-      body: `Votre code de réinitialisation de mot de passe est : ${otp}`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phone
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Code OTP envoyé",
-      userMessage: "Un code de vérification a été envoyé à votre numéro de téléphone."
-    });
-
-  } catch (error) {
-    console.error("Erreur lors de la demande de réinitialisation:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de l'envoi du code OTP",
-      userMessage: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-},
 
   async getAllUser(req, res) {
     try {
