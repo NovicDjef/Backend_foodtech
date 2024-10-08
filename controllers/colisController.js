@@ -110,6 +110,24 @@ export default {
       handleServerError(res, error);
     }
   },
+  async updateCommandeStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const updatedCommande = await prisma.colis.update({
+        where: { id: parseInt(id) },
+        data: { status },
+      });
+
+      res.status(200).json({
+        message: "Statut de la Colis mis à jour avec succès",
+        commande: updatedCommande
+      });
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
 
   // Supprimer un colis
   async deleteColis(req, res) {
