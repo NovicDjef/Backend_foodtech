@@ -21,7 +21,7 @@ import platsRoute from "./routes/platsRoute.js"
 import articleRoute from "./routes/articleRoute.js"
 import restaurantRoute from "./routes/restaurantRoute.js"
 import villeRoute from "./routes/villeRoute.js"
-import otpRoute from "./routes/otpRoute.js"
+// import otpRoute from "./routes/otpRoute.js"
 import heureOuveruteRoute from "./routes/heureOuveruteRoute.js"
 import colisRoute from "./routes/colisRoute.js"
 import menusRapideRoute from "./routes/menusRapideRoute.js"
@@ -80,7 +80,7 @@ server.use("/", platsRoute)
 server.use("/", articleRoute)
 server.use("/", restaurantRoute)
 server.use("/", villeRoute)
-server.use("/", otpRoute)
+// server.use("/", otpRoute)
 server.use("/", colisRoute)
 server.use("/", menusRapideRoute)
 server.use("/", heureOuveruteRoute)
