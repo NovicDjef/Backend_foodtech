@@ -1,6 +1,6 @@
 
 import express from 'express';
-import VilleController from '../controllers/VilleController.js';
+import VilleController from '../controllers/villeController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
