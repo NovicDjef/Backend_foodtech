@@ -1,14 +1,13 @@
-import express from 'express';
-import UserRoleController from '../controllers/UserRoleController';
+// import express from 'express';
+// import userRoleController from '../controllers/userRoleController.js';
 
 
+// const router = express.Router();
 
-const router = express.Router();
+// router.post('/user-roles', userRoleController.addUserRole);
+// router.get('/user-roles', userRoleController.getUserRoles);
+// router.get('/user-roles/:adminId', userRoleController.getUserRolesByAdmin);
+// router.put('/user-roles', userRoleController.updateUserRole);
+// router.delete('/user-roles/:adminId/:roleId', userRoleController.deleteUserRole);
 
-router.post('/user-roles', UserRoleController.addUserRole);
-router.get('/user-roles', UserRoleController.getUserRoles);
-router.get('/user-roles/:adminId', UserRoleController.getUserRolesByAdmin);
-router.put('/user-roles', UserRoleController.updateUserRole);
-router.delete('/user-roles/:adminId/:roleId', UserRoleController.deleteUserRole);
-
-export default router;
+// export default router;

@@ -15,30 +15,30 @@
 
 import express from 'express';
 
-import PayementController from '../controllers/payementController.js';
+import payementController from '../controllers/payementController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // Routes publiques
-router.post('/addpayement', PayementController.addPayement);
-router.get('/payements', PayementController.getAllPayements);
-router.get('/payements/:id', PayementController.getPayementById);
-router.get('/payements/status/:status', PayementController.getPayementsByStatus);
-router.get('/payements/check/:reference', PayementController.checkPayementStatus);
+router.post('/addpayement', payementController.addPayement);
+router.get('/payements', payementController.getAllPayements);
+router.get('/payements/:id', payementController.getPayementById);
+router.get('/payements/status/:status', payementController.getPayementsByStatus);
+router.get('/payements/check/:reference', payementController.checkPayementStatus);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/payements', PayementController.createPayement);
-router.put('/payements/:id', authMiddleware, PayementController.updatePayement);
-router.delete('/payements/:id', authMiddleware, PayementController.deletePayement);
-router.get('/users/:userId/payements', authMiddleware, PayementController.getUserPayements);
-router.patch('/payements/:id/status', authMiddleware, PayementController.updatePayementStatus);
+router.post('/payements', payementController.createPayement);
+router.put('/payements/:id', authMiddleware, payementController.updatePayement);
+router.delete('/payements/:id', authMiddleware, payementController.deletePayement);
+router.get('/users/:userId/payements', authMiddleware, payementController.getUserPayements);
+router.patch('/payements/:id/status', authMiddleware, payementController.updatePayementStatus);
 
 // Nouvelles routes pour l'intégration MeSomb
-router.post('/initiate-payment', PayementController.initiatePayment);
-// router.get('/application-status', authMiddleware, PayementController.getApplicationStatus);
-// router.post('/deposit', authMiddleware, PayementController.makeDeposit);
-// router.post('/collect', authMiddleware, PayementController.makeCollect);
+router.post('/initiate-payment', payementController.initiatePayment);
+// router.get('/application-status', authMiddleware, payementController.getApplicationStatus);
+// router.post('/deposit', authMiddleware, payementController.makeDeposit);
+// router.post('/collect', authMiddleware, payementController.makeCollect);
 
 
 export default router;

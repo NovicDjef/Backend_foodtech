@@ -1,22 +1,22 @@
 
 
 import express from 'express';
-import PlatsController from '../controllers/platsController.js';
+import platsController from '../controllers/platsController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // Routes publiques
-router.get('/plats', PlatsController.getAllPlats);
-router.get('/plats/:id', PlatsController.getPlatById);
-router.get('/plats/search', PlatsController.searchPlats);
-router.get('/users/:userId/favorite-plats', PlatsController.getUserFavoritePlats);
+router.get('/plats', platsController.getAllPlats);
+router.get('/plats/:id', platsController.getPlatById);
+router.get('/plats/search', platsController.searchPlats);
+router.get('/users/:userId/favorite-plats', platsController.getUserFavoritePlats);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/plats', authMiddleware, PlatsController.createPlat);
-router.put('/plats/:id', authMiddleware, PlatsController.updatePlat);
-router.delete('/plats/:id', authMiddleware, PlatsController.deletePlat);
-router.post('/plats/:platId/notes', authMiddleware, PlatsController.addNoteToPLat);
-router.post('/plats/:platId/favorites/:userId', authMiddleware, PlatsController.addPlatToFavorites);
+router.post('/plats', authMiddleware, platsController.createPlat);
+router.put('/plats/:id', authMiddleware, platsController.updatePlat);
+router.delete('/plats/:id', authMiddleware, platsController.deletePlat);
+router.post('/plats/:platId/notes', authMiddleware, platsController.addNoteToPLat);
+router.post('/plats/:platId/favorites/:userId', authMiddleware, platsController.addPlatToFavorites);
 
 export default router;

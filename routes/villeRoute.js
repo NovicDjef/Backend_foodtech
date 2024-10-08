@@ -1,19 +1,19 @@
 
 import express from 'express';
-import VilleController from '../controllers/villeController.js';
+import villeController from '../controllers/villeController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // Routes publiques
-router.get('/villes', VilleController.getAllVilles);
-router.get('/villes/:id', VilleController.getVilleById);
-router.get('/villes/:id/restaurants', VilleController.getRestaurantsByVille);
-router.get('/villes/search', VilleController.searchVilles);
+router.get('/villes', villeController.getAllVilles);
+router.get('/villes/:id', villeController.getVilleById);
+router.get('/villes/:id/restaurants', villeController.getRestaurantsByVille);
+router.get('/villes/search', villeController.searchVilles);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/villes', authMiddleware, VilleController.createVille);
-router.put('/villes/:id', authMiddleware, VilleController.updateVille);
-router.delete('/villes/:id', authMiddleware, VilleController.deleteVille);
+router.post('/villes', authMiddleware, villeController.createVille);
+router.put('/villes/:id', authMiddleware, villeController.updateVille);
+router.delete('/villes/:id', authMiddleware, villeController.deleteVille);
 
 export default router;

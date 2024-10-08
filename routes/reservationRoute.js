@@ -1,19 +1,19 @@
 import express from 'express';
-import ReservationController from '../controllers/reservationController.js';
+import reservationController from '../controllers/reservationController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // Routes publiques
-router.get('/reservations', ReservationController.getAllReservations);
-router.get('/reservations/:id', ReservationController.getReservationById);
-router.get('/users/:userId/reservations', ReservationController.getUserReservations);
-router.get('/restaurants/:restaurantId/reservations', ReservationController.getRestaurantReservations);
-router.get('/check-availability', ReservationController.checkTableAvailability);
+router.get('/reservations', reservationController.getAllReservations);
+router.get('/reservations/:id', reservationController.getReservationById);
+router.get('/users/:userId/reservations', reservationController.getUserReservations);
+router.get('/restaurants/:restaurantId/reservations', reservationController.getRestaurantReservations);
+router.get('/check-availability', reservationController.checkTableAvailability);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/reservations', authMiddleware, ReservationController.createReservation);
-router.put('/reservations/:id', authMiddleware, ReservationController.updateReservation);
-router.delete('/reservations/:id', authMiddleware, ReservationController.deleteReservation);
+router.post('/reservations', authMiddleware, reservationController.createReservation);
+router.put('/reservations/:id', authMiddleware, reservationController.updateReservation);
+router.delete('/reservations/:id', authMiddleware, reservationController.deleteReservation);
 
 export default router;
