@@ -138,9 +138,19 @@ model Complement {
   plats       Plats[]  @relation("PlatsToComplement")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
+  commandes   CommandeComplement[]
   Menusrapide Menusrapide[] @relation("PlatsToComplement")
 }
+
+model CommandeComplement {
+  id           Int        @id @default(autoincrement())
+  quantity     Int        // Quantité spécifique pour ce complément
+  commande     Commande   @relation(fields: [commandeId], references: [id])
+  commandeId   Int
+  complement   Complement  @relation(fields: [complementId], references: [id])
+  complementId Int
+}
+
 
 model Plats {
   id            Int             @id @default(autoincrement())
@@ -193,7 +203,7 @@ model Commande {
   payment        Payement?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-
+  complements    CommandeComplement[]
   Menusrapide Menusrapide[]
 }
 
@@ -208,7 +218,7 @@ model Colis {
   imageColis      String?
   adresseDepart   String
   adresseArrivee  String
-  status         ColisStatus @default(EN_ATTENTE)
+  status          ColisStatus @default(EN_ATTENTE)
   user            User      @relation(fields: [userId], references: [id])
   userId          Int
   livraison       Livraison? @relation(fields: [livraisonId], references: [id])

@@ -26,6 +26,7 @@ import colisRoute from "./routes/colisRoute.js"
 import menusRapideRoute from "./routes/menusRapideRoute.js"
 import prixRoute from "./routes/prixRoute.js"
 import notificationRoute from "./routes/notificationRoute.js"
+import complementsRoute from "./routes/complementsRoute.js"
 import { Expo } from 'expo-server-sdk';
 
 dotenv.config();
@@ -83,6 +84,7 @@ server.use("/", colisRoute)
 server.use("/", menusRapideRoute)
 server.use("/", heureOuveruteRoute)
 server.use("/", notificationRoute)
+server.use("/", complementsRoute)
 
 server.use('/images', express.static('images'))
 

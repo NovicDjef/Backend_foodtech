@@ -153,6 +153,16 @@ CREATE TABLE "Complement" (
 );
 
 -- CreateTable
+CREATE TABLE "CommandeComplement" (
+    "id" SERIAL NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "commandeId" INTEGER NOT NULL,
+    "complementId" INTEGER NOT NULL,
+
+    CONSTRAINT "CommandeComplement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Plats" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -502,6 +512,12 @@ ALTER TABLE "Menu" ADD CONSTRAINT "Menu_restaurantId_fkey" FOREIGN KEY ("restaur
 
 -- AddForeignKey
 ALTER TABLE "Categorie" ADD CONSTRAINT "Categorie_menuId_fkey" FOREIGN KEY ("menuId") REFERENCES "Menu"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CommandeComplement" ADD CONSTRAINT "CommandeComplement_commandeId_fkey" FOREIGN KEY ("commandeId") REFERENCES "Commande"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CommandeComplement" ADD CONSTRAINT "CommandeComplement_complementId_fkey" FOREIGN KEY ("complementId") REFERENCES "Complement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Plats" ADD CONSTRAINT "Plats_categorieId_fkey" FOREIGN KEY ("categorieId") REFERENCES "Categorie"("id") ON DELETE SET NULL ON UPDATE CASCADE;

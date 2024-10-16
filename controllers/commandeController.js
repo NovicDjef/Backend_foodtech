@@ -71,13 +71,100 @@ export default {
   //     });
   //   }
   // },
- async createCommande(req, res) {
+//  async createCommande(req, res) {
+//   console.log("Corps de la requête reçue:", req.body);
+
+//   const commandeData = req.body;
+//   const userId = req.user.id;
+  
+//   // Vérifie que le corps de la requête contient bien des données
+//   if (!commandeData || Object.keys(commandeData).length === 0) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Aucune donnée de commande n'a été envoyée",
+//       userMessage: "Les données de la commande sont manquantes."
+//     });
+//   }
+
+//   const { platsId, quantity, prix, recommandation, position, telephone } = commandeData;
+
+//   // Vérification de chaque champ et retour d'un message spécifique
+//   if (!platsId) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Le champ platsId est manquant",
+//       userMessage: "Veuillez fournir l'identifiant du plat."
+//     });
+//   }
+
+//   if (!quantity) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Le champ quantity est manquant",
+//       userMessage: "Veuillez spécifier la quantité."
+//     });
+//   }
+
+//   if (!prix) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Le champ prix est manquant",
+//       userMessage: "Veuillez indiquer le prix."
+//     });
+//   }
+
+//   // Optionnel : Vérifier le numéro de téléphone
+//   if (!telephone) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Le champ telephone est manquant",
+//       userMessage: "Veuillez fournir un numéro de téléphone."
+//     });
+//   }
+
+//   try {
+//     // Création de la commande si toutes les données sont présentes
+//     const newCommande = await prisma.commande.create({
+//       data: {
+//         quantity: parseInt(quantity),
+//         prix: parseFloat(prix),
+//         recommandation: recommandation || '',
+//         position: position || '',
+//         status: "EN_ATTENTE",
+//         telephone: telephone ? parseInt(telephone) : null,
+//         user: { connect: { id: parseInt(userId) } },
+//         plat: { connect: { id: parseInt(platsId) } },
+//       },
+//       include: {
+//         user: true,
+//         plat: true,
+//       },
+//     });
+
+//     console.log("Nouvelle commande créée:", newCommande);
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Commande créée avec succès",
+//       userMessage: "Votre commande a été passée avec succès !",
+//       commande: newCommande
+//     });
+//   } catch (error) {
+//     console.error('Erreur lors de la création de la commande:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Erreur lors de la création de la commande",
+//       userMessage: "Désolé, une erreur est survenue lors de la passation de votre commande. Veuillez réessayer.",
+//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+//     });
+//   }
+// },
+async createCommande(req, res) {
   console.log("Corps de la requête reçue:", req.body);
 
   const commandeData = req.body;
   const userId = req.user.id;
-  
-  // Vérifie que le corps de la requête contient bien des données
+
   if (!commandeData || Object.keys(commandeData).length === 0) {
     return res.status(400).json({
       success: false,
@@ -85,10 +172,17 @@ export default {
       userMessage: "Les données de la commande sont manquantes."
     });
   }
+  // Vérification que l'utilisateur est bien authentifié
+  if (!userId) {
+    return res.status(404).json({
+      success: false,
+      message: "Utilisateur non trouvé",
+      userMessage: "L'utilisateur est introuvable ou non authentifié."
+    });
+  }
 
-  const { platsId, quantity, prix, recommandation, position, telephone } = commandeData;
+  const { platsId, quantity, prix, recommandation, position, telephone, complements } = commandeData;
 
-  // Vérification de chaque champ et retour d'un message spécifique
   if (!platsId) {
     return res.status(400).json({
       success: false,
@@ -113,7 +207,6 @@ export default {
     });
   }
 
-  // Optionnel : Vérifier le numéro de téléphone
   if (!telephone) {
     return res.status(400).json({
       success: false,
@@ -123,7 +216,7 @@ export default {
   }
 
   try {
-    // Création de la commande si toutes les données sont présentes
+    // Créer la commande principale
     const newCommande = await prisma.commande.create({
       data: {
         quantity: parseInt(quantity),
@@ -141,7 +234,26 @@ export default {
       },
     });
 
-    console.log("Nouvelle commande créée:", newCommande);
+    // Si des compléments sont présents, les ajouter à la commande via la table pivot
+    if (complements && complements.length > 0) {
+      const complementsData = complements.map(complement => ({
+        quantity: complement.quantity,
+        complement: {
+          connect: {
+            id: complement.complementId
+          }
+        },
+        commande: {
+          connect: {
+            id: newCommande.id
+          }
+        }
+      }));
+
+      await prisma.commandeComplement.createMany({
+        data: complementsData,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -159,8 +271,6 @@ export default {
     });
   }
 },
-
-  
 
   // Obtenir toutes les commandes
   async getAllCommandes(req, res) {
