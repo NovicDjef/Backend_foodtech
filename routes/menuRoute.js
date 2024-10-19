@@ -12,8 +12,8 @@ router.get('/restaurants/:restaurantId/menus', menuController.getMenusByRestaura
 
 // Routes protégées (nécessitant une authentification)
 router.post('/menus', menuController.createMenu);
-router.put('/menus/:id', authMiddleware, menuController.updateMenu);
-router.delete('/menus/:id', authMiddleware, menuController.deleteMenu);
-router.post('/menus/:menuId/categories', authMiddleware, menuController.addCategoryToMenu);
+router.put('/menus/:id', authMiddleware('ADMIN'), menuController.updateMenu);
+router.delete('/menus/:id', authMiddleware('ADMIN'), menuController.deleteMenu);
+router.post('/menus/:menuId/categories', authMiddleware('ADMIN'), menuController.addCategoryToMenu);
 
 export default router;

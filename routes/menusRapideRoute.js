@@ -14,9 +14,9 @@ router.get('/users/:userId/favorite-plats', menusrapideController.getUserFavorit
 
 // Routes protégées (nécessitant une authentification)
 router.post('/menusrapides', menusrapideController.createMenusRapide);
-router.put('/menusrapide/:id', authMiddleware, menusrapideController.updateMenusRapide);
-router.delete('/menusrapide/:id', authMiddleware, menusrapideController.deleteMenusRapide);
-router.post('/menusrapide/:platId/notes', authMiddleware, menusrapideController.addNoteToMenusRapide);
-router.post('/menusrapide/:platId/favorites/:userId', authMiddleware, menusrapideController.addMenusRapideToFavorites);
+router.put('/menusrapide/:id', authMiddleware('ADMIN'), menusrapideController.updateMenusRapide);
+router.delete('/menusrapide/:id', authMiddleware('ADMIN'), menusrapideController.deleteMenusRapide);
+router.post('/menusrapide/:platId/notes', authMiddleware('ADMIN'), menusrapideController.addNoteToMenusRapide);
+router.post('/menusrapide/:platId/favorites/:userId', authMiddleware('ADMIN'), menusrapideController.addMenusRapideToFavorites);
 
 export default router;

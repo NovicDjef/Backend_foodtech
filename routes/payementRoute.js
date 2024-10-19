@@ -29,10 +29,10 @@ router.get('/payements/check/:reference', payementController.checkPayementStatus
 
 // Routes protégées (nécessitant une authentification)
 router.post('/payements', payementController.createPayement);
-router.put('/payements/:id', authMiddleware, payementController.updatePayement);
-router.delete('/payements/:id', authMiddleware, payementController.deletePayement);
-router.get('/users/:userId/payements', authMiddleware, payementController.getUserPayements);
-router.patch('/payements/:id/status', authMiddleware, payementController.updatePayementStatus);
+router.put('/payements/:id', authMiddleware('ADMIN'), payementController.updatePayement);
+router.delete('/payements/:id', authMiddleware('ADMIN'), payementController.deletePayement);
+router.get('/users/:userId/payements', authMiddleware('ADMIN'), payementController.getUserPayements);
+router.patch('/payements/:id/status', authMiddleware('ADMIN'), payementController.updatePayementStatus);
 
 // Nouvelles routes pour l'intégration MeSomb
 router.post('/initiate-payment', payementController.initiatePayment);

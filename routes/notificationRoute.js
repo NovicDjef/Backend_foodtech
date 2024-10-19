@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/notifications', notificationsController.getAllNotifications);
 router.get('/notifications/:id', notificationsController.getNotificationById);
-router.post('/notification', authMiddleware, notificationsController.createNotification);
+router.post('/notification', authMiddleware('ADMIN'), notificationsController.createNotification);
 router.put('/notifications/:id', notificationsController.updateNotification);
 router.delete('/notifications/:id', notificationsController.deleteNotification);
 

@@ -12,8 +12,8 @@ router.get('/restaurants/:restaurantId/reservations', reservationController.getR
 router.get('/check-availability', reservationController.checkTableAvailability);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/reservations', authMiddleware, reservationController.createReservation);
-router.put('/reservations/:id', authMiddleware, reservationController.updateReservation);
-router.delete('/reservations/:id', authMiddleware, reservationController.deleteReservation);
+router.post('/reservations', authMiddleware('ADMIN'), reservationController.createReservation);
+router.put('/reservations/:id', authMiddleware('ADMIN'), reservationController.updateReservation);
+router.delete('/reservations/:id', authMiddleware('ADMIN'), reservationController.deleteReservation);
 
 export default router;

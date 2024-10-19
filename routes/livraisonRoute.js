@@ -11,9 +11,9 @@ router.get('/livraisons/status/:statut', livraisonController.getLivraisonsByStat
 router.get('/livraisons/service/:serviceLivraisonId', livraisonController.getLivraisonsByService);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/livraisons', authMiddleware, livraisonController.createLivraison);
-router.put('/livraisons/:id', authMiddleware, livraisonController.updateLivraison);
-router.delete('/livraisons/:id', authMiddleware, livraisonController.deleteLivraison);
-router.patch('/livraisons/:id/status', authMiddleware, livraisonController.updateLivraisonStatus);
+router.post('/livraisons', authMiddleware('ADMIN'), livraisonController.createLivraison);
+router.put('/livraisons/:id', authMiddleware('ADMIN'), livraisonController.updateLivraison);
+router.delete('/livraisons/:id', authMiddleware('ADMIN'), livraisonController.deleteLivraison);
+router.patch('/livraisons/:id/status', authMiddleware('ADMIN'), livraisonController.updateLivraisonStatus);
 
 export default router;

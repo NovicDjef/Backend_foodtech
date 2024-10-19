@@ -4,7 +4,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function main() {
   // Créer des rôles
   const roles = ['Admin', 'User', 'Guest'];
   const roleRecords = await Promise.all(roles.map(role => 
@@ -262,4 +261,3 @@ main()
     await prisma.$disconnect();
   });
 
-}

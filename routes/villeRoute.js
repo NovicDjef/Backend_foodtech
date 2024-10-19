@@ -12,8 +12,8 @@ router.get('/villes/:id/restaurants', villeController.getRestaurantsByVille);
 router.get('/villes/search', villeController.searchVilles);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/villes', authMiddleware, villeController.createVille);
-router.put('/villes/:id', authMiddleware, villeController.updateVille);
-router.delete('/villes/:id', authMiddleware, villeController.deleteVille);
+router.post('/villes', authMiddleware('ADMIN'), villeController.createVille);
+router.put('/villes/:id', authMiddleware('ADMIN'), villeController.updateVille);
+router.delete('/villes/:id', authMiddleware('ADMIN'), villeController.deleteVille);
 
 export default router;

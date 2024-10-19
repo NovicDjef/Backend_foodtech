@@ -12,8 +12,8 @@ router.get('/restaurants/:id', restaurantController.getRestaurantById);
 router.get('/restaurants/search', restaurantController.searchRestaurants);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/restaurants', authMiddleware, restaurantController.createRestaurant);
-router.put('/restaurants/:id', authMiddleware, restaurantController.updateRestaurant);
-router.delete('/restaurants/:id', authMiddleware, restaurantController.deleteRestaurant);
+router.post('/restaurants', authMiddleware('ADMIN'), restaurantController.createRestaurant);
+router.put('/restaurants/:id', authMiddleware('ADMIN'), restaurantController.updateRestaurant);
+router.delete('/restaurants/:id', authMiddleware('ADMIN'), restaurantController.deleteRestaurant);
 
 export default router;
