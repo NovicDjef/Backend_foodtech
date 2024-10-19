@@ -113,15 +113,25 @@ async function main() {
       },
     });
 
+    
+
     for (let i = 0; i < 5; i++) {
-      const categorie = await prisma.categorie.create({
+      await prisma.complement.create({
         data: {
           name: faker.commerce.productName(),
-          image: faker.image.food(),
-          description: faker.lorem.sentence(),
-          menuId: menu.id,
+          prix: parseFloat(faker.commerce.price()),
         },
       });
+
+      for (let i = 0; i < 5; i++) {
+        const categorie = await prisma.categorie.create({
+          data: {
+            name: faker.commerce.productName(),
+            image: faker.image.food(),
+            description: faker.lorem.sentence(),
+            menuId: menu.id,
+          },
+        });
 
       for (let j = 0; j < 10; j++) {
         await prisma.menusrapide.create({
