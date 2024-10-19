@@ -262,4 +262,4 @@ main()
     await prisma.$disconnect();
   });
 
-  // npx prisma db seed
+}
