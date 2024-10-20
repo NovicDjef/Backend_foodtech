@@ -1,6 +1,6 @@
 import express from 'express';
 import reservationController from '../controllers/reservationController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -12,8 +12,8 @@ router.get('/restaurants/:restaurantId/reservations', reservationController.getR
 router.get('/check-availability', reservationController.checkTableAvailability);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/reservations', authMiddleware('ADMIN'), reservationController.createReservation);
-router.put('/reservations/:id', authMiddleware('ADMIN'), reservationController.updateReservation);
-router.delete('/reservations/:id', authMiddleware('ADMIN'), reservationController.deleteReservation);
+router.post('/reservations', adminAuthMiddleware, reservationController.createReservation);
+router.put('/reservations/:id', adminAuthMiddleware, reservationController.updateReservation);
+router.delete('/reservations/:id', adminAuthMiddleware, reservationController.deleteReservation);
 
 export default router;

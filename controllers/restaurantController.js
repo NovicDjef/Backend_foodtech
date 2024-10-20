@@ -21,7 +21,7 @@ const prisma = new PrismaClient();
           ville: villeId ? { connect: { id: parseInt(villeId) } } : undefined,
         },
       });
-
+console.log("restaurant :", newRestaurant)
       res.status(201).json({
         message: "Restaurant créé avec succès",
         restaurant: newRestaurant

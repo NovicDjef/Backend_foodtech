@@ -1,6 +1,6 @@
 import express from 'express';
 import menuController from '../controllers/menuController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -12,8 +12,8 @@ router.get('/restaurants/:restaurantId/menus', menuController.getMenusByRestaura
 
 // Routes protégées (nécessitant une authentification)
 router.post('/menus', menuController.createMenu);
-router.put('/menus/:id', authMiddleware('ADMIN'), menuController.updateMenu);
-router.delete('/menus/:id', authMiddleware('ADMIN'), menuController.deleteMenu);
-router.post('/menus/:menuId/categories', authMiddleware('ADMIN'), menuController.addCategoryToMenu);
+router.put('/menus/:id', adminAuthMiddleware, menuController.updateMenu);
+router.delete('/menus/:id', adminAuthMiddleware, menuController.deleteMenu);
+router.post('/menus/:menuId/categories', adminAuthMiddleware, menuController.addCategoryToMenu);
 
 export default router;

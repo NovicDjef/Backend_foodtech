@@ -16,7 +16,7 @@
 import express from 'express';
 
 import payementController from '../controllers/payementController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -28,11 +28,11 @@ router.get('/payements/status/:status', payementController.getPayementsByStatus)
 router.get('/payements/check/:reference', payementController.checkPayementStatus);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/payements', payementController.createPayement);
-router.put('/payements/:id', authMiddleware('ADMIN'), payementController.updatePayement);
-router.delete('/payements/:id', authMiddleware('ADMIN'), payementController.deletePayement);
-router.get('/users/:userId/payements', authMiddleware('ADMIN'), payementController.getUserPayements);
-router.patch('/payements/:id/status', authMiddleware('ADMIN'), payementController.updatePayementStatus);
+router.post('/payements', adminAuthMiddleware, payementController.createPayement);
+router.put('/payements/:id', adminAuthMiddleware, payementController.updatePayement);
+router.delete('/payements/:id', adminAuthMiddleware, payementController.deletePayement);
+router.get('/users/:userId/payements', adminAuthMiddleware, payementController.getUserPayements);
+router.patch('/payements/:id/status', adminAuthMiddleware, payementController.updatePayementStatus);
 
 // Nouvelles routes pour l'intégration MeSomb
 router.post('/initiate-payment', payementController.initiatePayment);

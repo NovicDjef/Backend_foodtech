@@ -2,7 +2,7 @@
 
 import express from 'express';
 import platsController from '../controllers/platsController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -13,10 +13,10 @@ router.get('/plats/search', platsController.searchPlats);
 router.get('/users/:userId/favorite-plats', platsController.getUserFavoritePlats);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/plats', authMiddleware('ADMIN'), platsController.createPlat);
-router.put('/plats/:id', authMiddleware('ADMIN'), platsController.updatePlat);
-router.delete('/plats/:id', authMiddleware('ADMIN'), platsController.deletePlat);
-router.post('/plats/:platId/notes', authMiddleware('ADMIN'), platsController.addNoteToPLat);
-router.post('/plats/:platId/favorites/:userId', authMiddleware('ADMIN'), platsController.addPlatToFavorites);
+router.post('/plats', adminAuthMiddleware, platsController.createPlat);
+router.put('/plats/:id', adminAuthMiddleware, platsController.updatePlat);
+router.delete('/plats/:id', adminAuthMiddleware, platsController.deletePlat);
+router.post('/plats/:platId/notes', adminAuthMiddleware, platsController.addNoteToPLat);
+router.post('/plats/:platId/favorites/:userId', adminAuthMiddleware, platsController.addPlatToFavorites);
 
 export default router;

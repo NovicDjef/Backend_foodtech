@@ -1,7 +1,7 @@
 
 import express from 'express';
 import villeController from '../controllers/villeController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -12,8 +12,8 @@ router.get('/villes/:id/restaurants', villeController.getRestaurantsByVille);
 router.get('/villes/search', villeController.searchVilles);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/villes', authMiddleware('ADMIN'), villeController.createVille);
-router.put('/villes/:id', authMiddleware('ADMIN'), villeController.updateVille);
-router.delete('/villes/:id', authMiddleware('ADMIN'), villeController.deleteVille);
+router.post('/villes', adminAuthMiddleware, villeController.createVille);
+router.put('/villes/:id', adminAuthMiddleware, villeController.updateVille);
+router.delete('/villes/:id', adminAuthMiddleware, villeController.deleteVille);
 
 export default router;

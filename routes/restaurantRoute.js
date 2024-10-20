@@ -2,7 +2,7 @@
 
 import express from 'express';
 import restaurantController from '../controllers/restaurantController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -12,8 +12,8 @@ router.get('/restaurants/:id', restaurantController.getRestaurantById);
 router.get('/restaurants/search', restaurantController.searchRestaurants);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/restaurants', authMiddleware('ADMIN'), restaurantController.createRestaurant);
-router.put('/restaurants/:id', authMiddleware('ADMIN'), restaurantController.updateRestaurant);
-router.delete('/restaurants/:id', authMiddleware('ADMIN'), restaurantController.deleteRestaurant);
+router.post('/restaurants', adminAuthMiddleware, restaurantController.createRestaurant);
+router.put('/restaurants/:id', adminAuthMiddleware, restaurantController.updateRestaurant);
+router.delete('/restaurants/:id', adminAuthMiddleware, restaurantController.deleteRestaurant);
 
 export default router;

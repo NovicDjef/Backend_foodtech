@@ -118,7 +118,7 @@ const prisma = new PrismaClient();
       await prisma.complement.create({
         data: {
           name: faker.commerce.productName(),
-          prix: parseFloat(faker.commerce.price()),
+          price: parseFloat(faker.commerce.price()),
         },
       });
 

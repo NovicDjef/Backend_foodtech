@@ -2,7 +2,7 @@
 
 import express from 'express';
 import categorieController from '../controllers/categorieController.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
 
@@ -13,9 +13,9 @@ router.get('/categories/:id/plats', categorieController.getPlatsByCategorie);
 router.get('/menus/:menuId/categories', categorieController.getCategoriesByMenu);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/categories', authMiddleware('ADMIN'), categorieController.createCategorie);
-router.put('/categories/:id', authMiddleware('ADMIN'), categorieController.updateCategorie);
-router.delete('/categories/:id', authMiddleware('ADMIN'), categorieController.deleteCategorie);
-router.post('/categories/:categorieId/plats', authMiddleware('ADMIN'), categorieController.addPlatToCategorie);
+router.post('/categories', adminAuthMiddleware, categorieController.createCategorie);
+router.put('/categories/:id', adminAuthMiddleware, categorieController.updateCategorie);
+router.delete('/categories/:id', adminAuthMiddleware, categorieController.deleteCategorie);
+router.post('/categories/:categorieId/plats', adminAuthMiddleware, categorieController.addPlatToCategorie);
 
 export default router;

@@ -1,7 +1,7 @@
 
 
 import express from 'express';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 import menusrapideController from '../controllers/menusrapideController.js';
 
 const router = express.Router();
@@ -13,10 +13,10 @@ router.get('/menusrapide/search', menusrapideController.searchMenusRapide);
 router.get('/users/:userId/favorite-plats', menusrapideController.getUserFavoriteMenusRapide);
 
 // Routes protégées (nécessitant une authentification)
-router.post('/menusrapides', menusrapideController.createMenusRapide);
-router.put('/menusrapide/:id', authMiddleware('ADMIN'), menusrapideController.updateMenusRapide);
-router.delete('/menusrapide/:id', authMiddleware('ADMIN'), menusrapideController.deleteMenusRapide);
-router.post('/menusrapide/:platId/notes', authMiddleware('ADMIN'), menusrapideController.addNoteToMenusRapide);
-router.post('/menusrapide/:platId/favorites/:userId', authMiddleware('ADMIN'), menusrapideController.addMenusRapideToFavorites);
+router.post('/menusrapides', adminAuthMiddleware, menusrapideController.createMenusRapide);
+router.put('/menusrapide/:id', adminAuthMiddleware, menusrapideController.updateMenusRapide);
+router.delete('/menusrapide/:id', adminAuthMiddleware, menusrapideController.deleteMenusRapide);
+router.post('/menusrapide/:platId/notes', adminAuthMiddleware, menusrapideController.addNoteToMenusRapide);
+router.post('/menusrapide/:platId/favorites/:userId', adminAuthMiddleware, menusrapideController.addMenusRapideToFavorites);
 
 export default router;
