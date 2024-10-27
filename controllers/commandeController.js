@@ -235,25 +235,40 @@ async createCommande(req, res) {
     });
 
     // Si des compléments sont présents, les ajouter à la commande via la table pivot
+    // if (complements && complements.length > 0) {
+    //   const complementsData = complements.map(complement => ({
+    //     quantity: complement.quantity,
+    //     complement: {
+    //       connect: {
+    //         id: complement.complementId
+    //       }
+    //     },
+    //     commande: {
+    //       connect: {
+    //         id: newCommande.id
+    //       }
+    //     }
+    //   }));
+
+    //   await prisma.commandeComplement.createMany({
+    //     data: complementsData,
+    //   });
+    // }
     if (complements && complements.length > 0) {
       const complementsData = complements.map(complement => ({
         quantity: complement.quantity,
-        complement: {
-          connect: {
-            id: complement.complementId
-          }
-        },
-        commande: {
-          connect: {
-            id: newCommande.id
-          }
-        }
+        complementId: complement.complementId,
+        name: complement.name,
+        price: complement.price,
+        commandeId: newCommande.id
       }));
-
+    
       await prisma.commandeComplement.createMany({
-        data: complementsData,
+        data: complementsData
       });
     }
+    
+    
 
     res.status(201).json({
       success: true,

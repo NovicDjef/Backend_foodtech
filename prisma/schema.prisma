@@ -142,12 +142,15 @@ model Complement {
   Menusrapide Menusrapide[] @relation("PlatsToComplement")
 }
 
+
 model CommandeComplement {
   id           Int        @id @default(autoincrement())
-  quantity     Int        // Quantité spécifique pour ce complément
+  quantity     Int
+  name         String
+  price        Float
   commande     Commande   @relation(fields: [commandeId], references: [id])
   commandeId   Int
-  complement   Complement  @relation(fields: [complementId], references: [id])
+  complement   Complement @relation(fields: [complementId], references: [id])
   complementId Int
 }
 
