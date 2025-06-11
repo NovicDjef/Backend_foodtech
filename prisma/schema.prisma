@@ -44,6 +44,9 @@ model User {
   image             String?
   password          String 
   avatar            String?
+  socialId          String?            
+  provider          String?            
+  isEmailVerified   Boolean            @default(false)
   commandes         Commande[]
   historiques       Historique[]
   reservations      Reservation[]
@@ -57,6 +60,7 @@ model User {
   geolocalisationId Int?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  @@index([socialId, provider])
 }
 
 model OTP {
@@ -207,7 +211,8 @@ model Commande {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   complements    CommandeComplement[]
-  Menusrapide Menusrapide[]
+  Menusrapide    Menusrapide[]
+  
 }
 
 model Colis {

@@ -6,6 +6,8 @@ import upload from '../middlewares/multer.js';
 
 const router = express.Router();
 
+router.post("/social", userController.social);
+router.post("/verify", userController.verify);
 router.post("/usersIdByPhone", userController.PostByPhone);
 router.post("/signup", upload.single('image'), userController.signUpUser);
 router.post('/login', userController.login);

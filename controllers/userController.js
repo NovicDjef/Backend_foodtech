@@ -142,6 +142,128 @@ async login(req, res) {
     });
   }
 },
+// Authentification sociale (Google/Apple)
+ async social (req, res) {
+  try {
+    const { socialId, email, username, avatar, provider } = req.body;
+
+    if (!socialId || !provider) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID social et fournisseur requis'
+      });
+    }
+
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email ?? '' },
+          { socialId: socialId }
+        ]
+      }
+    });
+
+    if (user) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          avatar: avatar || user.avatar,
+          provider,
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      const finalUsername = username || `${provider}_user_${Date.now()}`;
+      const finalEmail = email || `${provider}_${socialId}@social.local`;
+
+      user = await prisma.user.create({
+        data: {
+          username: finalUsername,
+          phone: finalEmail,
+          email: finalEmail,
+          avatar: avatar,
+          image: avatar,
+          password: '',
+          socialId,
+          provider,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, username: user.username, provider: user.provider },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Authentification réussie',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        phone: user.phone,
+        avatar: user.avatar,
+        image: user.image
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur authentification sociale:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de l\'authentification',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+},
+
+ async verify (req, res) {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token manquant'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        username: true,
+        phone: true,
+        avatar: true,
+        image: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur vérification token:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Token invalide'
+    });
+  }
+},
+
 
 async PostByPhone(req, res) {
   try {

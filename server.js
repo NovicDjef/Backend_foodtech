@@ -34,16 +34,29 @@ dotenv.config();
 const server = express()
 server.use(express.json())
 server.use(express.urlencoded({ extended: true }))
-server.use(cors())
 
+// ****** pour le serveur distant  ******** //
+// const allowedOrigins = [
+//     'http://localhost:5173', 
+//     'http://localhost:1234', 
+//   ];
+  
+// const corsOptions = {
+//     origin: function (origin, callback) {
+//       if (!origin) return callback(null, true);
+//       if (allowedOrigins.indexOf(origin) !== -1) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error('Origine non autorisée par CORS'));
+//       }
+//     },
+//     methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'PATCH', 'DELETE'],
+//     allowedHeaders: ['Content-Type', 'Authorization'],
+//     credentials: true, 
+//   };
+  
+//   server.use(cors(corsOptions));
 
-// server.use((req, res, next) => {
-// res.setHeader('Access-Controll-Allow-Origin', '*')
-// res.setHeader('Access-Controll-Allow-Headers', 'Origin,X-Requested-With,Content,Accept,Content-Type,Authorization')
-// res.setHeader('Access-Controll-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE')
-// res.setHeader('Access-Control-Allow-Credentials', true);
-// next()
-// })
 server.use((req, res, next) => {
 res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:5173'); // Remplacez par l'URL de votre application React
 res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
