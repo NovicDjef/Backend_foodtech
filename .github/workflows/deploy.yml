@@ -49,9 +49,9 @@ jobs:
           echo "🚀 Starting deployment..."
           
           # Variables
-          APP_DIR="/var/www/api-novic"
+          APP_DIR="/var/www/back_foodtech"
           BACKUP_DIR="/var/www/backups"
-          APP_NAME="api-novic"
+          APP_NAME="back_foodtech"
           
           # Create directories if they don't exist
           mkdir -p $APP_DIR
