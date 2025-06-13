@@ -49,7 +49,7 @@ jobs:
           
           # Install dependencies
           echo "📦 Installing dependencies..."
-          npm install --production
+          npm install --omit=dev
           
           # Create .env file if it doesn't exist
           if [ ! -f ".env" ]; then

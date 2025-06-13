@@ -61,6 +61,7 @@ model User {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   @@index([socialId, provider])
+  NotificationHistory NotificationHistory[]
 }
 
 model OTP {
@@ -148,14 +149,16 @@ model Complement {
 
 
 model CommandeComplement {
-  id           Int        @id @default(autoincrement())
-  quantity     Int
+  id            Int @id @default(autoincrement())
+  quantity      Int
   name         String
   price        Float
-  commande     Commande   @relation(fields: [commandeId], references: [id])
-  commandeId   Int
-  complement   Complement @relation(fields: [complementId], references: [id])
-  complementId Int
+  commandeId    Int
+  commande      Commande @relation(fields: [commandeId], references: [id])
+  complementId  Int
+  complement    Complement @relation(fields: [complementId], references: [id])
+  
+  @@unique([commandeId, complementId])
 }
 
 
@@ -252,18 +255,60 @@ model Article {
 }
 
 model Livraison {
-  id                 Int               @id @default(autoincrement())
-  type               LivraisonType
-  statut             Statut            @default(NON_LIVRE)
-  adresseDepart      String
-  adresseArrivee     String
-  dateLivraison      DateTime          @default(now())
-  commande           Commande?
-  colis              Colis?
-  serviceLivraison   ServiceLivraison? @relation(fields: [serviceLivraisonId], references: [id])
-  serviceLivraisonId Int?
-  updatedAt          DateTime          @updatedAt
+  id              Int      @id @default(autoincrement())
+  status          LivraisonStatus @default(ASSIGNEE)
+  tempsEstime     String?  // "15-20 min"
+  heureAssignation DateTime @default(now())
+  heureRecuperation DateTime?
+  heureLivraison  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  livreurId       Int
+  livreur         Livreur  @relation(fields: [livreurId], references: [id])
+  historiquePositions HistoriquePosition[]
+  serviceLivraison ServiceLivraison[]
+  colis Colis[]
+
+  Commande Commande[]
 }
+
+model Livreur {
+  id              Int      @id @default(autoincrement())
+  nom             String
+  prenom          String
+  email           String   @unique
+  telephone       String   @unique
+  motDePasse      String
+  photo           String?
+  disponible      Boolean  @default(true)
+  note            Float?   @default(5.0)
+  totalLivraisons Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  positionActuelle Json?
+  fcmToken        String?
+  deviceId        String?
+  livraisons      Livraison[]
+  typeVehicule    TypeVehicule @default(MOTO)
+  plaqueVehicule  String?
+  NotificationHistory NotificationHistory[]
+  HistoriquePosition HistoriquePosition[]
+}
+
+model HistoriquePosition {
+  id            Int      @id @default(autoincrement())
+  latitude      Float
+  longitude     Float
+  timestamp     DateTime @default(now())
+  
+  // Relations
+  livraisonId   Int
+  livraison     Livraison @relation(fields: [livraisonId], references: [id])
+  
+  livreurId     Int
+  livreur       Livreur   @relation(fields: [livreurId], references: [id])
+}
+
 
 model Note {
   id        Int       @id @default(autoincrement())
@@ -337,6 +382,22 @@ model Historique {
   updatedAt DateTime @updatedAt
 }
 
+model NotificationHistory {
+  id          Int      @id @default(autoincrement())
+  titre       String
+  message     String
+  type        String   // 'COMMANDE', 'LIVRAISON', 'TRACKING'
+  lu          Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  livreurId   Int?
+  livreur     Livreur? @relation(fields: [livreurId], references: [id])
+}
+
 model Notifications {
   id          Int         @id @default(autoincrement())
   name        String
@@ -382,24 +443,33 @@ model PrixLivraisonCommande {
 enum CommandeStatus {
   EN_ATTENTE
   VALIDER
-  EN_COURS
-  PAYEE
+  ASSIGNEE      
+  EN_COURS      
   LIVREE
   ANNULEE
 }
  enum ColisStatus {
   EN_ATTENTE
   VALIDER
-  EN_COURS
-  PAYEE
+  ASSIGNEE      
+  EN_COURS      
   LIVREE
   ANNULEE
- }
-
-enum LivraisonType {
-  COMMANDE
-  COLIS
 }
+
+enum LivraisonStatus {
+  ASSIGNEE      // Livreur assigné, en route vers restaurant
+  EN_ROUTE      // En route vers le client
+  LIVREE        // Livraison terminée
+  ANNULEE       // Livraison annulée
+}
+
+enum TypeVehicule {
+  MOTO
+  VELO
+  VOITURE
+  SCOOTER
+} 
 
 enum Statut {
   LIVREE
