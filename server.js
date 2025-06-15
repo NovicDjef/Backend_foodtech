@@ -27,6 +27,7 @@ import menusRapideRoute from "./routes/menusRapideRoute.js"
 import prixRoute from "./routes/prixRoute.js"
 import notificationRoute from "./routes/notificationRoute.js"
 import complementsRoute from "./routes/complementsRoute.js"
+import livreurRoute from "./routes/livreurRoute.js"
 import { Expo } from 'expo-server-sdk';
 
 dotenv.config();
@@ -83,6 +84,7 @@ server.use("/", slideRoute)
 server.use("/", commandeRoute)
 server.use("/", noteRoute)
 server.use("/", livraisonRoute)
+server.use("/", livreurRoute)
 server.use("/", menuRoute)
 server.use("/", historiqueRoute)
 server.use("/", geolocalisationRoute)

@@ -274,19 +274,19 @@ model Livraison {
 
 model Livreur {
   id              Int      @id @default(autoincrement())
-  nom             String
+  username        String
   prenom          String
   email           String   @unique
   telephone       String   @unique
-  motDePasse      String
-  photo           String?
+  password        String
+  image           String?
   disponible      Boolean  @default(true)
   note            Float?   @default(5.0)
   totalLivraisons Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   positionActuelle Json?
-  fcmToken        String?
+  pushToken        String?
   deviceId        String?
   livraisons      Livraison[]
   typeVehicule    TypeVehicule @default(MOTO)
@@ -294,6 +294,7 @@ model Livreur {
   NotificationHistory NotificationHistory[]
   HistoriquePosition HistoriquePosition[]
 }
+
 
 model HistoriquePosition {
   id            Int      @id @default(autoincrement())
