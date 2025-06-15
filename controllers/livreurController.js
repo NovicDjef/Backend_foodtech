@@ -76,7 +76,7 @@ export default {
       );
 
       res.status(201).json({
-        message: 'Livreur créé avec succès',
+        message: 'Livreur créé avec succès veilleur de vous connecter',
         livreur: {
           id: newLivreur.id,
           username: newLivreur.username,
@@ -100,30 +100,43 @@ export default {
   // Connexion d'un livreur
   async loginLivreur(req, res) {
     try {
-      const { email, telephone, password } = req.body;
+      const { email, telephone, password, identifier } = req.body;
+
+       let searchEmail = email;
+       let searchTelephone = telephone;
+    
+    if (identifier) {
+      const isEmail = identifier.includes('@');
+      if (isEmail) {
+        searchEmail = identifier;
+      } else {
+        searchTelephone = identifier;
+      }
+    }
 
       // Validation des champs requis
-      if (!password || (!email && !telephone)) {
+      if (!password || (!searchEmail && !searchTelephone)) {
         return res.status(400).json({ 
           message: 'Email/téléphone et mot de passe requis' 
         });
       }
 
       // Recherche du livreur par email ou téléphone
-      const livreur = await prisma.livreur.findFirst({
-        where: {
-          OR: [
-            { email },
-            { telephone }
-          ]
-        }
-      });
-
-      if (!livreur) {
-        return res.status(401).json({ 
-          message: "Identifiants invalides" 
-        });
+     const livreur = await prisma.livreur.findFirst({
+      where: {
+        OR: [
+          searchEmail ? { email: searchEmail } : {},
+          searchTelephone ? { telephone: searchTelephone } : {}
+        ].filter(condition => Object.keys(condition).length > 0)
       }
+    });
+
+    if (!livreur) {
+      return res.status(401).json({ 
+        message: "Identifiants invalides" 
+      });
+    }
+
 
       // Vérification du mot de passe
       const isPasswordValid = await bcrypt.compare(password, livreur.password);
