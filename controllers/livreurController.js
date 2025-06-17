@@ -14,6 +14,467 @@ const handleServerError = (res, error) => {
 };
 
 export default {
+
+  // 📍 API : Mettre à jour la position du livreur
+ async updatePositionLivreur (req, res) {
+  try {
+    const { livreurId, latitude, longitude } = req.body;
+
+    await prisma.livreur.update({
+      where: { id: parseInt(livreurId) },
+      data: {
+        positionActuelle: {
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+          timestamp: new Date().toISOString()
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Position mise à jour'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur mise à jour position:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la position'
+    });
+  }
+},
+
+async getStatsLivreur (req, res) {
+  try {
+    const { id } = req.params;
+    const livreurId = parseInt(id);
+
+    // Calculer le nombre total de livraisons
+    const totalLivraisons = await prisma.livraison.count({
+      where: {
+        livreurId: livreurId,
+        status: 'LIVREE'
+      }
+    });
+
+    // Calculer les gains du jour (aujourd'hui)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const gainsJour = await prisma.livraison.aggregate({
+      where: {
+        livreurId: livreurId,
+        status: 'LIVREE',
+        heureLivraison: {
+          gte: today,
+          lt: tomorrow
+        }
+      },
+      _sum: {
+        // Assuming you have a 'montant' field in livraison table
+        // If not, you can calculate from commande.prix
+      }
+    });
+
+    // Alternative: Calculer gains via les commandes
+    const gainsJourCommandes = await prisma.commande.aggregate({
+      where: {
+        livraison: {
+          livreurId: livreurId,
+          status: 'LIVREE',
+          heureLivraison: {
+            gte: today,
+            lt: tomorrow
+          }
+        }
+      },
+      _sum: {
+        prix: true
+      }
+    });
+
+    // Calculer les gains de la semaine
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    
+    const gainsSeaineCommandes = await prisma.commande.aggregate({
+      where: {
+        livraison: {
+          livreurId: livreurId,
+          status: 'LIVREE',
+          heureLivraison: {
+            gte: startOfWeek,
+            lt: tomorrow
+          }
+        }
+      },
+      _sum: {
+        prix: true
+      }
+    });
+
+    // Calculer les gains du mois
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const gainsMoisCommandes = await prisma.commande.aggregate({
+      where: {
+        livraison: {
+          livreurId: livreurId,
+          status: 'LIVREE',
+          heureLivraison: {
+            gte: startOfMonth,
+            lt: tomorrow
+          }
+        }
+      },
+      _sum: {
+        prix: true
+      }
+    });
+
+    // Calculer la note moyenne (si vous avez un système de notation)
+    // const notemoyenne = await prisma.evaluation.aggregate({
+    //   where: { livreurId: livreurId },
+    //   _avg: { note: true }
+    // });
+
+    const stats = {
+      totalLivraisons: totalLivraisons || 0,
+      note: 5.0, // notemoyenne?._avg?.note || 5.0,
+      gainsJour: gainsJourCommandes._sum?.prix || 0,
+      gainsSemaine: gainsSeaineCommandes._sum?.prix || 0,
+      gainsMois: gainsMoisCommandes._sum?.prix || 0,
+    };
+
+    console.log(`📊 Stats livreur ${livreurId}:`, stats);
+
+    res.json({
+      success: true,
+      stats: stats
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur récupération stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques',
+      stats: {
+        totalLivraisons: 0,
+        note: 5.0,
+        gainsJour: 0,
+        gainsSemaine: 0,
+        gainsMois: 0,
+      }
+    });
+  }
+},
+
+// POST /api/livreur/register-push-token
+async postRegisterPushToken (req, res) {
+  try {
+    const { livreurId, pushToken } = req.body;
+
+    if (!livreurId || !pushToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'livreurId et pushToken requis'
+      });
+    }
+
+    // Mettre à jour le token push du livreur
+    const livreur = await prisma.livreur.update({
+      where: { id: parseInt(livreurId) },
+      data: { 
+        pushToken: pushToken,
+        updatedAt: new Date()
+      }
+    });
+
+    console.log(`📱 Token push enregistré pour livreur ${livreurId}: ${pushToken.slice(0, 20)}...`);
+
+    res.json({
+      success: true,
+      message: 'Token push enregistré avec succès'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur enregistrement token push:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'enregistrement du token push'
+    });
+  }
+},
+
+// PUT /api/commandes/livreur/location
+async updatePositionLivreurCommande (req, res) {
+  try {
+    const { livreurId, latitude, longitude } = req.body;
+
+    if (!livreurId || !latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'livreurId, latitude et longitude requis'
+      });
+    }
+
+    // Mettre à jour la position du livreur
+    await prisma.livreur.update({
+      where: { id: parseInt(livreurId) },
+      data: {
+        positionActuelle: {
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+          timestamp: new Date().toISOString()
+        },
+        updatedAt: new Date()
+      }
+    });
+
+    // Log moins verbeux pour éviter le spam
+    // console.log(`📍 Position livreur ${livreurId} mise à jour`);
+
+    res.json({
+      success: true,
+      message: 'Position mise à jour'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur mise à jour position:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la position'
+    });
+  }
+},
+
+// Dans votre livreurController.js
+
+// Mettre à jour le statut d'un livreur (disponibilité, position, etc.)
+async updateLivreurStatus(req, res) {
+  try {
+    const { 
+      livreurId, 
+      disponible, 
+      positionActuelle, 
+      pushToken, 
+      deviceId 
+    } = req.body;
+
+    console.log('🔄 Mise à jour statut livreur:', {
+      livreurId,
+      disponible,
+      positionActuelle: !!positionActuelle,
+      pushToken: !!pushToken,
+      deviceId: !!deviceId
+    });
+
+    // Validation des champs requis
+    if (!livreurId) {
+      return res.status(400).json({
+        message: 'ID du livreur requis'
+      });
+    }
+
+    // Vérifier si le livreur existe
+    const existingLivreur = await prisma.livreur.findUnique({
+      where: { id: parseInt(livreurId) }
+    });
+
+    if (!existingLivreur) {
+      return res.status(404).json({
+        message: 'Livreur non trouvé'
+      });
+    }
+
+    // Préparer les données à mettre à jour
+    const updateData = {};
+    
+    // Mise à jour de la disponibilité
+    if (typeof disponible === 'boolean') {
+      updateData.disponible = disponible;
+      console.log(`📱 Disponibilité: ${disponible ? 'EN LIGNE' : 'HORS LIGNE'}`);
+    }
+
+    // Mise à jour de la position
+    if (positionActuelle && positionActuelle.latitude && positionActuelle.longitude) {
+      updateData.positionActuelle = {
+        latitude: parseFloat(positionActuelle.latitude),
+        longitude: parseFloat(positionActuelle.longitude),
+        timestamp: new Date().toISOString()
+      };
+      console.log('📍 Position mise à jour:', updateData.positionActuelle);
+
+      // Ajouter dans l'historique des positions si on a une nouvelle position
+      try {
+        await prisma.historiquePosition.create({
+          data: {
+            livreurId: parseInt(livreurId),
+            latitude: parseFloat(positionActuelle.latitude),
+            longitude: parseFloat(positionActuelle.longitude)
+          }
+        });
+        console.log('✅ Position ajoutée à l\'historique');
+      } catch (historyError) {
+        console.warn('⚠️ Erreur ajout historique position:', historyError);
+        // Ne pas faire échouer la requête principale
+      }
+    }
+
+    // Mise à jour du push token
+    if (pushToken) {
+      updateData.pushToken = pushToken;
+      console.log('🔔 Push token mis à jour');
+    }
+
+    // Mise à jour du device ID
+    if (deviceId) {
+      updateData.deviceId = deviceId;
+      console.log('📱 Device ID mis à jour');
+    }
+
+    // Vérifier qu'il y a au moins une donnée à mettre à jour
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        message: 'Aucune donnée à mettre à jour'
+      });
+    }
+
+    // Mettre à jour le livreur
+    const updatedLivreur = await prisma.livreur.update({
+      where: { id: parseInt(livreurId) },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
+        prenom: true,
+        email: true,
+        telephone: true,
+        disponible: true,
+        positionActuelle: true,
+        updatedAt: true,
+        typeVehicule: true,
+        note: true,
+        totalLivraisons: true
+      }
+    });
+
+    console.log('✅ Statut livreur mis à jour:', updatedLivreur.username);
+
+    res.status(200).json({
+      message: 'Statut mis à jour avec succès',
+      livreur: updatedLivreur,
+      updates: Object.keys(updateData)
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur mise à jour statut:', error);
+    handleServerError(res, error);
+  }
+},
+
+// Méthode bonus : Obtenir le statut actuel d'un livreur
+async getLivreurStatus(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        message: 'ID du livreur requis'
+      });
+    }
+
+    const livreur = await prisma.livreur.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        username: true,
+        prenom: true,
+        disponible: true,
+        positionActuelle: true,
+        pushToken: true,
+        deviceId: true,
+        updatedAt: true,
+        typeVehicule: true,
+        note: true,
+        totalLivraisons: true,
+        // Inclure les livraisons en cours
+        livraisons: {
+          where: {
+            // Adapter selon votre modèle de livraison
+            // statut: 'EN_COURS' // par exemple
+          },
+          select: {
+            id: true,
+            createdAt: true
+            // Autres champs selon votre modèle
+          }
+        }
+      }
+    });
+
+    if (!livreur) {
+      return res.status(404).json({
+        message: 'Livreur non trouvé'
+      });
+    }
+
+    res.status(200).json({
+      message: 'Statut récupéré avec succès',
+      livreur: {
+        ...livreur,
+        isOnline: livreur.disponible,
+        hasActiveDeliveries: livreur.livraisons.length > 0,
+        lastUpdate: livreur.updatedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur récupération statut:', error);
+    handleServerError(res, error);
+  }
+},
+
+// Méthode bonus : Mettre à jour seulement la disponibilité (plus simple)
+async toggleLivreurDisponibilite(req, res) {
+  try {
+    const { id } = req.params;
+    const { disponible } = req.body;
+
+    if (typeof disponible !== 'boolean') {
+      return res.status(400).json({
+        message: 'Le champ disponible doit être un booléen (true/false)'
+      });
+    }
+
+    const updatedLivreur = await prisma.livreur.update({
+      where: { id: parseInt(id) },
+      data: { disponible },
+      select: {
+        id: true,
+        username: true,
+        disponible: true,
+        updatedAt: true
+      }
+    });
+
+    console.log(`🔄 ${updatedLivreur.username} est maintenant ${disponible ? 'DISPONIBLE' : 'INDISPONIBLE'}`);
+
+    res.status(200).json({
+      message: `Livreur ${disponible ? 'activé' : 'désactivé'} avec succès`,
+      livreur: updatedLivreur
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur toggle disponibilité:', error);
+    handleServerError(res, error);
+  }
+},
+
+
   // Inscription d'un nouveau livreur
   async signUpLivreur(req, res) {
     try {

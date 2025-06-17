@@ -7,11 +7,11 @@ const prisma = new PrismaClient();
   async createCategorie(req, res) {
     try {
       const { name, image, description, menuId } = req.body;
-      
+      const imageCategorie = req.file? req.file.path : null;
       const newCategorie = await prisma.categorie.create({
         data: {
           name,
-          image,
+          image: imageCategorie,
           description,
           menu: menuId ? { connect: { id: parseInt(menuId) } } : undefined,
         },

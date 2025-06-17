@@ -1,168 +1,150 @@
 import { PrismaClient } from '@prisma/client';
+import admin from 'firebase-admin';
+import { Expo } from 'expo-server-sdk';
 
 const prisma = new PrismaClient();
+const expo = new Expo({
+  accessToken: process.env.EXPO_ACCESS_TOKEN
+});
+
+//  const chunks = expo.chunkPushNotifications(messages);
+//  for (const chunk of chunks) {
+//     try {
+//       const receipts = await expo.sendPushNotificationsAsync(chunk);
+//       console.log('✅ Notifications envoyées:', receipts);
+//     } catch (error) {
+//       console.error('❌ Erreur envoi chunk:', error);
+//     }
+//   }
+
+const notifyAllLivreurs = async (commande) => {
+  try {
+    console.log('📢 Notification des livreurs pour commande:', commande.id);
+    
+    // Récupérer tous les livreurs disponibles avec pushToken
+    const livreursDisponibles = await prisma.livreur.findMany({
+      where: {
+        disponible: true,
+        pushToken: {
+          not: null
+        }
+      },
+      select: {
+        id: true,
+        username: true,
+        pushToken: true,
+        positionActuelle: true
+      }
+    });
+
+    console.log(`📱 ${livreursDisponibles.length} livreurs disponibles trouvés`);
+
+    if (livreursDisponibles.length === 0) {
+      return {
+        success: false,
+        message: 'Aucun livreur disponible',
+        sentTo: []
+      };
+    }
+
+    // Préparer les messages de notification
+    const messages = [];
+    const notificationData = {
+      type: 'nouvelle_commande',
+      commandeId: commande.id,
+      prix: commande.prix,
+      position: commande.position,
+      restaurant: commande.plat?.restaurant?.name || 'Restaurant',
+      timestamp: new Date().toISOString()
+    };
+
+    livreursDisponibles.forEach(livreur => {
+      // Vérifier que le pushToken est valide
+      if (Expo.isExpoPushToken(livreur.pushToken)) {
+        messages.push({
+          to: livreur.pushToken,
+          sound: 'default',
+          title: '🍽️ Nouvelle commande disponible !',
+          body: `Commande de ${commande.prix}€ - ${commande.plat?.restaurant?.name || 'Restaurant'}`,
+          data: notificationData,
+          priority: 'high',
+          channelId: 'commandes'
+        });
+      } else {
+        console.warn(`⚠️ Token invalide pour ${livreur.username}:`, livreur.pushToken);
+      }
+    });
+
+    console.log(`📤 Envoi de ${messages.length} notifications...`);
+
+    // Envoyer les notifications par chunks
+    const chunks = expo.chunkPushNotifications(messages);
+
+  for (const chunk of chunks) {
+    try {
+      const receipts = await expo.sendPushNotificationsAsync(chunk);
+      console.log('✅ Notifications envoyées:', receipts);
+    } catch (error) {
+      console.error('❌ Erreur envoi chunk:', error);
+    }
+  }
+    
+    
+    let tickets = [];
+
+for (let chunk of expo.chunkPushNotifications(messages)) {
+  try {
+    let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+    tickets.push(...ticketChunk);
+  } catch (error) {
+    console.error('Erreur envoi chunk:', error);
+  }
+}
+
+
+    // Sauvegarder l'historique des notifications
+    const notificationHistory = livreursDisponibles.map(livreur => ({
+      livreurId: livreur.id,
+      commandeId: commande.id,
+      titre: "Nouvelle commande ",
+      message: `Nouvelle commande de ${commande.prix}€`,
+      type: 'NOUVELLE_COMMANDE',
+      sent: true
+    }));
+
+    try {
+      await prisma.notificationHistory.createMany({
+        data: notificationHistory,
+        skipDuplicates: true
+      });
+      console.log('✅ Historique notifications sauvegardé');
+    } catch (historyError) {
+      console.warn('⚠️ Erreur sauvegarde historique:', historyError);
+    }
+
+    return {
+      success: true,
+      message: `Notifications envoyées à ${livreursDisponibles.length} livreurs`,
+      sentTo: livreursDisponibles.map(l => ({ id: l.id, username: l.username })),
+      tickets: tickets.length
+    };
+
+  } catch (error) {
+    console.error('❌ Erreur notification livreurs:', error);
+    return {
+      success: false,
+      message: 'Erreur lors de l\'envoi des notifications',
+      error: error.message
+    };
+  }
+}
 
 export default {
-  // // Créer une nouvelle commande
-  // async createCommande(req, res) {
-  //   try {
-  //     const { userId, platsId, quantity, prix, recommandation, telephone, position } = req.body;
-      
-  //     console.log("Données reçues:", { userId, platsId, quantity, telephone, prix, recommandation, position });
   
-  //     // Validation des données
-  //     if (!userId || !platsId || !quantity || !prix) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: "Données manquantes",
-  //         userMessage: "Veuillez fournir toutes les informations nécessaires pour la commande."
-  //       });
-  //     }
-  
-  //     const commandeData = {
-  //       quantity: parseInt(quantity),
-  //       prix: parseFloat(prix),
-  //       recommandation: recommandation || '',
-  //       position: position || '',
-  //       status: 'EN_COURS',
-  //       telephone: telephone || '',
-  //       user: { connect: { id: parseInt(userId) } },
-  //       plat: { connect: { id: parseInt(platsId) } },
-  //     };
-  
-  //     console.log("Données préparées pour Prisma:", commandeData);
-  
-  //     const newCommande = await prisma.commande.create({
-  //       data: commandeData,
-  //       include: {
-  //         user: true,
-  //         plat: true,
-  //       },
-  //     });
-  
-  //     console.log("Commande créée:", newCommande);
-  
-  //     res.status(201).json({
-  //       success: true,
-  //       message: "Commande créée avec succès",
-  //       userMessage: "Votre commande a été passée avec succès ! Vous recevrez bientôt une confirmation.",
-  //       commande: newCommande
-  //     });
-  //   } catch (error) {
-  //     console.error('Erreur détaillée lors de la création de la commande:', error);
-  
-  //     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-  //       // Gestion des erreurs spécifiques à Prisma
-  //       if (error.code === 'P2002') {
-  //         return res.status(400).json({
-  //           success: false,
-  //           message: "Contrainte unique violée",
-  //           userMessage: "Cette commande ne peut pas être créée car elle viole une contrainte unique."
-  //         });
-  //       }
-  //       // Ajoutez d'autres codes d'erreur Prisma si nécessaire
-  //     }
-  
-  //     res.status(500).json({
-  //       success: false,
-  //       message: "Erreur lors de la création de la commande",
-  //       userMessage: "Désolé, une erreur est survenue lors de la passation de votre commande. Veuillez réessayer.",
-  //       error: process.env.NODE_ENV === 'development' ? error.message : undefined
-  //     });
-  //   }
-  // },
-//  async createCommande(req, res) {
-//   console.log("Corps de la requête reçue:", req.body);
-
-//   const commandeData = req.body;
-//   const userId = req.user.id;
-  
-//   // Vérifie que le corps de la requête contient bien des données
-//   if (!commandeData || Object.keys(commandeData).length === 0) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Aucune donnée de commande n'a été envoyée",
-//       userMessage: "Les données de la commande sont manquantes."
-//     });
-//   }
-
-//   const { platsId, quantity, prix, recommandation, position, telephone } = commandeData;
-
-//   // Vérification de chaque champ et retour d'un message spécifique
-//   if (!platsId) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Le champ platsId est manquant",
-//       userMessage: "Veuillez fournir l'identifiant du plat."
-//     });
-//   }
-
-//   if (!quantity) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Le champ quantity est manquant",
-//       userMessage: "Veuillez spécifier la quantité."
-//     });
-//   }
-
-//   if (!prix) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Le champ prix est manquant",
-//       userMessage: "Veuillez indiquer le prix."
-//     });
-//   }
-
-//   // Optionnel : Vérifier le numéro de téléphone
-//   if (!telephone) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Le champ telephone est manquant",
-//       userMessage: "Veuillez fournir un numéro de téléphone."
-//     });
-//   }
-
-//   try {
-//     // Création de la commande si toutes les données sont présentes
-//     const newCommande = await prisma.commande.create({
-//       data: {
-//         quantity: parseInt(quantity),
-//         prix: parseFloat(prix),
-//         recommandation: recommandation || '',
-//         position: position || '',
-//         status: "EN_ATTENTE",
-//         telephone: telephone ? parseInt(telephone) : null,
-//         user: { connect: { id: parseInt(userId) } },
-//         plat: { connect: { id: parseInt(platsId) } },
-//       },
-//       include: {
-//         user: true,
-//         plat: true,
-//       },
-//     });
-
-//     console.log("Nouvelle commande créée:", newCommande);
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Commande créée avec succès",
-//       userMessage: "Votre commande a été passée avec succès !",
-//       commande: newCommande
-//     });
-//   } catch (error) {
-//     console.error('Erreur lors de la création de la commande:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Erreur lors de la création de la commande",
-//       userMessage: "Désolé, une erreur est survenue lors de la passation de votre commande. Veuillez réessayer.",
-//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
-//     });
-//   }
-// },
 async createCommande(req, res) {
   console.log("Corps de la requête reçue:", req.body);
 
-  const commandeData = req.body;
+  const commandeData = req.body.commandeData;
   const userId = req.user.id;
 
   if (!commandeData || Object.keys(commandeData).length === 0) {
@@ -228,32 +210,29 @@ async createCommande(req, res) {
         user: { connect: { id: parseInt(userId) } },
         plat: { connect: { id: parseInt(platsId) } },
       },
-      include: {
-        user: true,
-        plat: true,
-      },
+     include: {
+        user: {
+          select: { username: true, phone: true }
+        },
+        plat: {
+              include: {
+                categorie: {
+                  include: {
+                    menu: {
+                      include: {
+                        restaurant: {
+                          select: { name: true, adresse: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+      }
     });
 
-    // Si des compléments sont présents, les ajouter à la commande via la table pivot
-    // if (complements && complements.length > 0) {
-    //   const complementsData = complements.map(complement => ({
-    //     quantity: complement.quantity,
-    //     complement: {
-    //       connect: {
-    //         id: complement.complementId
-    //       }
-    //     },
-    //     commande: {
-    //       connect: {
-    //         id: newCommande.id
-    //       }
-    //     }
-    //   }));
-
-    //   await prisma.commandeComplement.createMany({
-    //     data: complementsData,
-    //   });
-    // }
+ 
     if (complements && complements.length > 0) {
       const complementsData = complements.map(complement => ({
         quantity: complement.quantity,
@@ -268,13 +247,14 @@ async createCommande(req, res) {
       });
     }
     
-    
+     const notificationResult = await notifyAllLivreurs(newCommande);
 
     res.status(201).json({
       success: true,
-      message: "Commande créée avec succès",
+      message: "Votre commande a été passée avec succès !",
       userMessage: "Votre commande a été passée avec succès !",
-      commande: newCommande
+      commande: newCommande,
+      notificationResult
     });
   } catch (error) {
     console.error('Erreur lors de la création de la commande:', error);
@@ -286,6 +266,104 @@ async createCommande(req, res) {
     });
   }
 },
+
+// async notifyAllLivreurs (commandeData) {
+//   try {
+//     // 1. Récupérer tous les livreurs en ligne avec token push
+//     const livreursOnline = await prisma.livreur.findMany({
+//       where: {
+//         disponible: true, // En ligne
+//         pushToken: { not: null } // Ont un token push
+//       }
+//     });
+
+//     console.log(`📢 Notification de commande à ${livreursOnline.length} livreurs`);
+//     console.log(`📢 Notification de commande ${commandeData.id} à ${livreursOnline.length} livreurs`);
+    
+//     // 2. Préparer les données de notification
+//     const notificationData = {
+//       commandeId: commandeData.id,
+//       restaurant: commandeData.plat.restaurant.name,
+//       clientNom: commandeData.user.name,
+//       clientTelephone: commandeData.telephone,
+//       adresseLivraison: commandeData.position,
+//       prix: commandeData.prix,
+//       platNom: commandeData.plat.name,
+//       quantity: commandeData.quantity,
+//       recommandations: commandeData.recommandation || '',
+//       restaurantLat: commandeData.plat.restaurant.latitude,
+//       restaurantLng: commandeData.plat.restaurant.longitude,
+//       timestamp: new Date().toISOString()
+//     };
+
+//     // 3. Envoyer notification à tous les livreurs
+//     const notificationPromises = livreursOnline.map(livreur => 
+//       sendPushNotificationToLivreur(livreur.pushToken, notificationData, livreur.id)
+//     );
+
+//     await Promise.all(notificationPromises);
+    
+//     return { success: true, livreurCount: livreursOnline.length };
+    
+//   } catch (error) {
+//     console.error('❌ Erreur notification livreurs:', error);
+//     throw error;
+//   }
+// },
+
+// 🔔 Envoyer notification push individuelle
+
+
+
+async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
+  try {
+    const message = {
+      token: pushToken,
+      notification: {
+        title: "🚚 Nouvelle Commande Disponible !",
+        body: `${commandeData.restaurant} - ${commandeData.prix} FCFA - ${commandeData.clientNom}`
+      },
+      data: {
+        type: 'NEW_COMMANDE',
+        commandeId: commandeData.commandeId.toString(),
+        restaurant: commandeData.restaurant,
+        clientNom: commandeData.clientNom,
+        clientTelephone: commandeData.clientTelephone,
+        adresse: commandeData.adresseLivraison,
+        prix: commandeData.prix.toString(),
+        platNom: commandeData.platNom,
+        quantity: commandeData.quantity.toString(),
+        recommandations: commandeData.recommandations,
+        restaurantLat: commandeData.restaurantLat.toString(),
+        restaurantLng: commandeData.restaurantLng.toString(),
+        timestamp: commandeData.timestamp
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'new-orders',
+          sound: 'default',
+          priority: 'max'
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            'content-available': 1
+          }
+        }
+      }
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log(`✅ Notification envoyée au livreur ${livreurId}:`, response);
+    
+  } catch (error) {
+    console.error(`❌ Erreur envoi notification livreur ${livreurId}:`, error);
+  }
+},
+
 
   // Obtenir toutes les commandes
   async getAllCommandes(req, res) {

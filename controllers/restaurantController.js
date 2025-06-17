@@ -6,15 +6,17 @@ const prisma = new PrismaClient();
   // Créer un nouveau restaurant
   async createRestaurant(req, res) {
     try {
-      const { name, phone, adresse, image, description, latitude, longitude, adminId, villeId } = req.body;
-      
+      const { name, phone, adresse, image, description, ratings, latitude, longitude, adminId, villeId } = req.body;
+      const imagePath = req.file ? req.file.path : null;
+       const rating = parseFloat(ratings);
       const newRestaurant = await prisma.restaurant.create({
         data: {
           name,
           phone,
           adresse,
-          image,
+          image: imagePath,
           description,
+          ratings: rating,
           latitude: parseFloat(latitude),
           longitude: parseFloat(longitude),
           admin: adminId ? { connect: { id: parseInt(adminId) } } : undefined,

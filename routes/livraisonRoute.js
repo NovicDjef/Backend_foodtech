@@ -17,6 +17,13 @@ const router = express.Router();
 // router.patch('/livraisons/:id/status', adminAuthMiddleware, livraisonController.updateLivraisonStatus);
 
 
+router.get('/livraison/:id', livraisonController.getDetailsLivraison);
+router.post('/commandes/delivered', livraisonController.postLivraisonAsDelivered);
+router.post('/commandes/reject', livraisonController.postLivraisonAsRejected);
+router.post('/commandes/accept', livraisonController.postLivraisonAsAccepted);
+router.get('/livraisons/active/:livreurId', livraisonController.getLivraisonsActive);
+router.get('/livraisons/historique/:livreurId', livraisonController.getLivraisonsHistorique);
+router.get('/commandes/livraison/:id', livraisonController.getCommandeLivraison);
 
 router.get('/tracking/:commandeId', livraisonController.getLivraisonsTracking);
 router.post('/assign', livraisonController.assignleLivraison);

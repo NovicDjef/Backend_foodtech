@@ -6,14 +6,17 @@ export default  {
   // Créer un nouveau plat
   async createPlat(req, res) {
     try {
-      const { name, image, description, prix, categorieId } = req.body;
-      
+      const { name, image, description, prix, ratings, categorieId } = req.body;
+      const imagePath = req.file ? req.file.path : null;
+      const price = parseFloat(prix);
+      const rating = parseFloat(ratings);
       const newPlat = await prisma.plats.create({
         data: {
           name,
-          image,
+          image: imagePath,
           description,
-          prix: parseFloat(prix),
+          prix: price,
+          ratings: rating,
           categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
         },
         include: {

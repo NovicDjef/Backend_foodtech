@@ -2,7 +2,458 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// 📱 Fonction pour notifier le client
+const notifyClient = async (clientPushToken, notification) => {
+  try {
+    const message = {
+      token: clientPushToken,
+      notification: {
+        title: notification.title,
+        body: notification.body
+      },
+      data: {
+        type: 'ORDER_UPDATE',
+        commandeId: notification.commandeId.toString()
+      }
+    };
+
+    await admin.messaging().send(message);
+    console.log('✅ Client notifié:', notification.title);
+    
+  } catch (error) {
+    console.error('❌ Erreur notification client:', error);
+  }
+}
+
 export default  {
+
+
+    // ✅ API : Livreur accepte une commande
+async postLivraisonAsAccepted (req, res) {
+  try {
+    const { commandeId, livreurId } = req.body;
+
+    // 1. Vérifier que la commande est toujours disponible
+    const commande = await prisma.commande.findUnique({
+      where: { id: parseInt(commandeId) },
+      include: {
+        user: { select: { name: true, pushToken: true } },
+        plat: { include: { restaurant: true } }
+      }
+    });
+
+    if (!commande) {
+      return res.status(404).json({
+        success: false,
+        message: 'Commande non trouvée'
+      });
+    }
+
+    if (commande.status !== 'EN_ATTENTE') {
+      return res.status(409).json({
+        success: false,
+        message: 'Commande déjà prise par un autre livreur'
+      });
+    }
+
+    // 2. Créer la livraison et assigner le livreur
+    const livraison = await prisma.livraison.create({
+      data: {
+        commandeId: parseInt(commandeId),
+        livreurId: parseInt(livreurId),
+        status: {
+          in: ['ASSIGNEE', 'EN_ROUTE'] // Statuts actifs
+        },
+        heureAssignation: new Date()
+      }
+    });
+
+    // 3. Mettre à jour le statut de la commande
+    await prisma.commande.update({
+      where: { id: parseInt(commandeId) },
+      data: { 
+        status: 'EN_ROUTE',
+        livraisonId: livraison.id 
+      }
+    });
+
+    // 4. Marquer le livreur comme occupé
+    await prisma.livreur.update({
+      where: { id: parseInt(livreurId) },
+      data: { disponible: false }
+    });
+
+    // 5. 📱 Notifier le CLIENT que sa commande est prise
+    if (commande.user.pushToken) {
+      await notifyClient(commande.user.pushToken, {
+        title: "🚚 Livreur assigné !",
+        body: "Votre commande est maintenant en cours de traitement",
+        commandeId: commandeId
+      });
+    }
+
+    // 6. Récupérer les détails complets pour le livreur
+    const livraisonComplete = await prisma.livraison.findUnique({
+      where: { id: livraison.id },
+      include: {
+        commande: {
+          include: {
+            user: { select: { name: true } },
+            plat: { include: { restaurant: true } }
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Commande acceptée avec succès',
+      livraison: livraisonComplete
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur acceptation commande:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'acceptation de la commande'
+    });
+  }
+},
+
+// ❌ API : Livreur refuse une commande
+async postLivraisonAsRejected (req, res) {
+  try {
+    const { commandeId, livreurId } = req.body;
+
+    // Log du refus (optionnel pour analytics)
+    console.log(`📝 Livreur ${livreurId} a refusé la commande ${commandeId}`);
+
+    res.json({
+      success: true,
+      message: 'Commande refusée'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur refus commande:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du refus de la commande'
+    });
+  }
+},
+
+// 🏁 API : Marquer commande comme livrée
+ async postLivraisonAsDelivered (req, res) {
+  try {
+    const { livraisonId, livreurId } = req.body;
+
+    // 1. Mettre à jour la livraison
+    const livraison = await prisma.livraison.update({
+      where: { id: parseInt(livraisonId) },
+      data: {
+        status: 'LIVREE',
+        heureLivraison: new Date()
+      },
+      include: {
+        commande: {
+          include: {
+            user: { select: { pushToken: true } }
+          }
+        }
+      }
+    });
+
+    // 2. Mettre à jour le statut de la commande
+    await prisma.commande.update({
+      where: { id: livraison.commandeId },
+      data: { status: 'LIVREE' }
+    });
+
+    // 3. Libérer le livreur
+    await prisma.livreur.update({
+      where: { id: parseInt(livreurId) },
+      data: { disponible: true }
+    });
+
+    // 4. 📱 Notifier le client de la livraison
+    if (livraison.commande.user.pushToken) {
+      await notifyClient(livraison.commande.user.pushToken, {
+        title: "🎉 Commande livrée !",
+        body: "Votre commande a été livrée avec succès. Bon appétit !",
+        commandeId: livraison.commandeId
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Commande marquée comme livrée',
+      livraison
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur livraison:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la confirmation de livraison'
+    });
+  }
+},
+
+// GET /api/livraisons/active/:livreurId
+async getLivraisonsActive (req, res) {
+  try {
+    const { livreurId } = req.params;
+
+    const activeLivraisons = await prisma.livraison.findMany({
+      where: {
+        livreurId: parseInt(livreurId),
+        status: {
+          in: ['ASSIGNEE', 'EN_ROUTE'] // Statuts actifs
+        }
+      },
+      include: {
+        commande: {
+          include: {
+            user: {
+              select: { id: true, username: true, phone: true }
+            },
+            plat: {
+                include: {
+                categorie: {
+                    include: {
+                    menu: {
+                        include: {
+                        restaurant: {
+                            select: {
+                            name: true,
+                            adresse: true,
+                            latitude: true,
+                            longitude: true
+                            }
+                        }
+                        }
+                    }
+                    }
+                }
+                }
+            
+            }
+
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    console.log(`📋 ${activeLivraisons.length} livraisons actives pour livreur ${livreurId}`);
+
+    res.json({
+      success: true,
+      livraisons: activeLivraisons
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur livraisons actives:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des livraisons actives',
+      livraisons: []
+    });
+  }
+},
+
+// GET /api/livraisons/historique/:livreurId?period=week|month|all
+async getLivraisonsHistorique (req, res) {
+  try {
+    const { livreurId } = req.params;
+    const { period = 'month' } = req.query;
+
+
+     const livreurIdInt = parseInt(livreurId);
+    if (isNaN(livreurIdInt)) {
+      return res.status(400).json({ success: false, message: 'livreurId invalide' });
+    } 
+
+    // Calculer la date de début selon la période
+    let dateDebut = new Date();
+    
+    switch (period) {
+      case 'week':
+        dateDebut.setDate(dateDebut.getDate() - 7);
+        break;
+      case 'month':
+        dateDebut.setMonth(dateDebut.getMonth() - 1);
+        break;
+      case 'all':
+        dateDebut = new Date('2020-01-01'); // Date très ancienne
+        break;
+      default:
+        dateDebut.setMonth(dateDebut.getMonth() - 1);
+    }
+
+    const historiqueLivraisons = await prisma.livraison.findMany({
+      where: {
+        livreurId: livreurIdInt,
+       status: {
+        in: ["ASSIGNEE", "EN_ROUTE"] 
+        },
+        heureLivraison: {
+          gte: dateDebut
+        }
+      },
+      include: {
+        commande: {
+          include: {
+            user: {
+              select: { id: true, username: true, phone: true }
+            },
+            plat: {
+              include: {
+                categorie: {
+                  include: {
+                    menu: {
+                      include: {
+                        restaurant: {
+                          select: { name: true, adresse: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        heureLivraison: 'desc'
+      },
+      take: 50 // Limiter à 50 dernières livraisons
+    });
+
+    console.log(`📚 ${historiqueLivraisons.length} livraisons dans l'historique (${period}) pour livreur ${livreurId}`);
+
+    res.json({
+      success: true,
+      livraisons: historiqueLivraisons,
+      period: period
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur historique livraisons:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération de l\'historique',
+      livraisons: []
+    });
+  }
+},
+
+
+// 📋 API : Récupérer les détails d'une livraison pour le livreur
+async getDetailsLivraison (req, res) {
+  try {
+    const { id } = req.params;
+
+    const livraison = await prisma.livraison.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        commande: {
+          include: {
+            user: {
+              select: { name: true, email: true }
+            },
+            plat: {
+              include: {
+                restaurant: {
+                  select: { name: true, address: true, latitude: true, longitude: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!livraison) {
+      return res.status(404).json({
+        success: false,
+        message: 'Livraison non trouvée'
+      });
+    }
+
+    res.json({
+      success: true,
+      livraison
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur récupération livraison:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des détails'
+    });
+  }
+},
+
+// GET /api/commandes/livraison/:id
+async getCommandeLivraison (req, res) {
+  try {
+    const { id } = req.params;
+
+    const livraison = await prisma.livraison.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        commande: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true }
+            },
+            plat: {
+              include: {
+                restaurant: {
+                  select: { 
+                    name: true, 
+                    address: true, 
+                    latitude: true, 
+                    longitude: true,
+                    telephone: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        livreur: {
+          select: { id: true, nom: true, prenom: true, telephone: true }
+        }
+      }
+    });
+
+    if (!livraison) {
+      return res.status(404).json({
+        success: false,
+        message: 'Livraison non trouvée'
+      });
+    }
+
+    console.log(`📦 Détails livraison ${id} récupérés`);
+
+    res.json({
+      success: true,
+      livraison: livraison
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur détails livraison:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des détails'
+    });
+  }
+},
 
   async getLivraisonsTracking(req, res) {
         try {
@@ -111,7 +562,7 @@ export default  {
         const livraisonsActives = await prisma.livraison.findMany({
             where: {
                 livreurId: parseInt(livreurId),
-                status: { in: ['ASSIGNEE', 'EN_COURS'] }
+                status: { in: ['ASSIGNEE', 'EN_ROUTE'] }
             },
             include: {
                 commande: {
