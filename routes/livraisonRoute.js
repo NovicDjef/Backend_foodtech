@@ -18,7 +18,7 @@ const router = express.Router();
 
 
 router.get('/livraison/:id', livraisonController.getDetailsLivraison);
-router.post('/commandes/delivered', livraisonController.postLivraisonAsDelivered);
+router.put('/commandes/delivered', livraisonController.postLivraisonAsDelivered);
 router.post('/commandes/reject', livraisonController.postLivraisonAsRejected);
 router.post('/commandes/accept', livraisonController.postLivraisonAsAccepted);
 router.get('/livraisons/active/:livreurId', livraisonController.getLivraisonsActive);

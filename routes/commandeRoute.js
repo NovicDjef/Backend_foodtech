@@ -10,6 +10,9 @@ router.get('/commandes', commandeController.getAllCommandes);
 router.get('/commandes/:id', commandeController.getCommandeById);
 router.get('/users/:userId/commandes', commandeController.getUserCommandes);
 router.get('/commandes/status/:status', commandeController.getCommandesByStatus);
+router.get('/commandes/disponibles', commandeController.getCommandesDisponibles);
+router.post('/commandes/:commandeId/accepter', commandeController.accepterCommande);
+
 
 // Routes protégées (nécessitant une authentification)
 router.post('/commandes', userAuthMiddleware, commandeController.createCommande);

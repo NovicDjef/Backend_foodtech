@@ -17,6 +17,7 @@ router.put('/commandes/livreur/location', livreurController.updatePositionLivreu
 router.put('/livreur/status', livreurController.updateLivreurStatus);
 router.get('/livreur/:id/status', livreurController.getLivreurStatus);
 router.patch('/livreur/:id/disponibilite', livreurController.toggleLivreurDisponibilite);
+router.get('/debug/tokens', livreurController.debugTokens);
 
 // Routes bonus
 router.patch('/livreur/:id/disponibilite', livreurController.updateDisponibilite);

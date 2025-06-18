@@ -15,6 +15,44 @@ const handleServerError = (res, error) => {
 
 export default {
 
+  // Dans votre livreurController.js, ajoutez cette méthode
+async debugTokens(req, res) {
+  try {
+    const livreurs = await prisma.livreur.findMany({
+      select: {
+        id: true,
+        username: true,
+        disponible: true,
+        pushToken: true
+      }
+    });
+
+    const stats = {
+      total: livreurs.length,
+      disponibles: livreurs.filter(l => l.disponible).length,
+      avecToken: livreurs.filter(l => l.pushToken).length,
+      disponiblEtToken: livreurs.filter(l => l.disponible && l.pushToken).length
+    };
+
+    console.log('📊 Stats tokens:', stats);
+
+    res.json({
+      success: true,
+      stats,
+      livreurs: livreurs.map(l => ({
+        id: l.id,
+        username: l.username,
+        disponible: l.disponible,
+        hasToken: !!l.pushToken,
+        tokenPreview: l.pushToken ? l.pushToken.substring(0, 20) + '...' : null
+      }))
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+},
+
   // 📍 API : Mettre à jour la position du livreur
  async updatePositionLivreur (req, res) {
   try {

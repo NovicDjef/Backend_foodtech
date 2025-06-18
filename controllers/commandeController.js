@@ -7,15 +7,6 @@ const expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN
 });
 
-//  const chunks = expo.chunkPushNotifications(messages);
-//  for (const chunk of chunks) {
-//     try {
-//       const receipts = await expo.sendPushNotificationsAsync(chunk);
-//       console.log('✅ Notifications envoyées:', receipts);
-//     } catch (error) {
-//       console.error('❌ Erreur envoi chunk:', error);
-//     }
-//   }
 
 const notifyAllLivreurs = async (commande) => {
   try {
@@ -51,9 +42,9 @@ const notifyAllLivreurs = async (commande) => {
     const messages = [];
     const notificationData = {
       type: 'nouvelle_commande',
-      commandeId: commande.id,
-      prix: commande.prix,
-      position: commande.position,
+      commandeId: commande.id.toString(),
+      prix: commande.prix.toString(),
+      position: commande.position || '',
       restaurant: commande.plat?.restaurant?.name || 'Restaurant',
       timestamp: new Date().toISOString()
     };
@@ -79,27 +70,17 @@ const notifyAllLivreurs = async (commande) => {
 
     // Envoyer les notifications par chunks
     const chunks = expo.chunkPushNotifications(messages);
-
+    const tickets = [];
   for (const chunk of chunks) {
     try {
       const receipts = await expo.sendPushNotificationsAsync(chunk);
+      tickets.push(...receipts);
       console.log('✅ Notifications envoyées:', receipts);
     } catch (error) {
       console.error('❌ Erreur envoi chunk:', error);
     }
   }
     
-    
-    let tickets = [];
-
-for (let chunk of expo.chunkPushNotifications(messages)) {
-  try {
-    let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-    tickets.push(...ticketChunk);
-  } catch (error) {
-    console.error('Erreur envoi chunk:', error);
-  }
-}
 
 
     // Sauvegarder l'historique des notifications
@@ -109,7 +90,7 @@ for (let chunk of expo.chunkPushNotifications(messages)) {
       titre: "Nouvelle commande ",
       message: `Nouvelle commande de ${commande.prix}€`,
       type: 'NOUVELLE_COMMANDE',
-      sent: true
+      send: true
     }));
 
     try {
@@ -267,6 +248,60 @@ async createCommande(req, res) {
   }
 },
 
+  async getCommandesDisponibles(req, res) {
+  try {
+    console.log('📋 Récupération commandes disponibles...');
+    
+    const commandes = await prisma.commande.findMany({
+      where: {
+        status: 'EN_ATTENTE' // Seulement les commandes en attente
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            phone: true
+          }
+        },
+         plat: {
+              include: {
+                categorie: {
+                  include: {
+                    menu: {
+                      include: {
+                        restaurant: {
+                          select: { name: true, adresse: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+      },
+      orderBy: {
+        createdAt: 'desc' // Plus récentes en premier
+      }
+    });
+
+    console.log(`✅ ${commandes.length} commandes disponibles trouvées`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Commandes récupérées avec succès',
+      commandes
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur récupération commandes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des commandes'
+    });
+  }
+},
+
 // async notifyAllLivreurs (commandeData) {
 //   try {
 //     // 1. Récupérer tous les livreurs en ligne avec token push
@@ -370,11 +405,14 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
     try {
       const commandes = await prisma.commande.findMany({
         include: {
-          //user: true,
-          //plats: true,
-          // payement: true,
-          // livraison: true,
-        }
+        user: true,
+        plat: true,
+        //payement: true,
+        // livraison: true,
+        // complements: true,
+        // Menusrapide: true,
+      }
+
       });
 
       res.status(200).json(commandes);
@@ -382,6 +420,279 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
       handleServerError(res, error);
     }
   },
+
+  // controllers/commandeController.js
+
+// async accepterCommande(req, res) {
+//   try {
+//     const commandeId = parseInt(req.params.commandeId);
+//     const { livreurId } = req.body;
+
+//     if (!commandeId || !livreurId) {
+//       return res.status(400).json({ success: false, message: 'commandeId et livreurId requis' });
+//     }
+
+//     // Vérifier si la commande existe
+//     const commande = await prisma.commande.findUnique({
+//       where: { id: commandeId }
+//     });
+
+//     if (!commande) {
+//       return res.status(404).json({ success: false, message: 'Commande non trouvée' });
+//     }
+
+//     // Vérifier si le livreur existe
+//     const livreur = await prisma.livreur.findUnique({
+//       where: { id: livreurId }
+//     });
+
+//     if (!livreur) {
+//       return res.status(404).json({ success: false, message: 'Livreur non trouvé' });
+//     }
+
+//     // Créer une livraison
+//     const livraison = await prisma.livraison.create({
+//       data: {
+//         commandeId: commandeId,
+//         livreurId: livreurId,
+//         status: 'EN_COURS', // ou ce que ton enum contient
+//         dateLivraison: new Date()
+//       },
+//       include: {
+//         commande: true,
+//         livreur: true
+//       }
+//     });
+
+//     // Mettre à jour le status de la commande
+//     await prisma.commande.update({
+//       where: { id: commandeId },
+//       data: {
+//         status: 'EN_LIVRAISON'
+//       }
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Commande acceptée',
+//       commande: livraison.commande
+//     });
+//   } catch (error) {
+//     console.error('❌ Erreur acceptation commande:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Erreur serveur lors de l\'acceptation de la commande'
+//     });
+//   }
+// },
+
+// ✅ Fonction principale d'acceptation de commande
+async accepterCommande (req, res) {
+  try {
+    const commandeId = parseInt(req.params.id); // ✅ Corrigé : req.params.id au lieu de commandeId
+    const { livreurId } = req.body;
+    
+    console.log(`📦 Acceptation commande ${commandeId} par livreur ${livreurId}`);
+
+    // ✅ Validation des paramètres
+    // if (!commandeId || !livreurId) {
+    //   return res.status(400).json({ 
+    //     success: false, 
+    //     message: 'ID commande et ID livreur requis' 
+    //   });
+    // }
+
+    // ✅ Vérifier si la commande existe et est disponible
+    const commande = await prisma.commande.findFirst({
+      where: { 
+        id: 1,
+        status: 'EN_ATTENTE'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            phone: true,
+            //pushToken: true
+          }
+        },
+        plat: {
+              include: {
+                categorie: {
+                  include: {
+                    menu: {
+                      include: {
+                        restaurant: {
+                          select: {
+                            id: true,
+                            name: true,
+                            latitude: true,
+                            longitude: true,
+                            adresse: true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+      }
+    });
+
+    if (!commande) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Commande non trouvée ou déjà acceptée' 
+      });
+    }
+
+    // ✅ Vérifier si le livreur existe et est disponible
+    const livreur = await prisma.livreur.findFirst({
+      where: { 
+        id: parseInt(livreurId),
+        disponible: true
+      },
+      select: {
+        id: true,
+        username: true,
+        prenom: true,
+        telephone: true,
+        note: true,
+        typeVehicule: true,
+        positionActuelle: true,
+        pushToken: true
+      }
+    });
+
+    if (!livreur) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Livreur non trouvé ou indisponible' 
+      });
+    }
+
+    // ✅ Transaction pour assurer la cohérence
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Créer la livraison
+      const nouvelleLivraison = await tx.livraison.create({
+        data: {
+          commandeId: commandeId,
+          livreurId: parseInt(livreurId),
+          status: 'ACCEPTEE',
+          dateAcceptation: new Date(),
+          dateLivraison: new Date() // Date estimée
+        },
+        include: {
+          commande: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  phone: true
+                }
+              },
+              plat: {
+                include: {
+                  restaurant: {
+                    select: {
+                      id: true,
+                      name: true,
+                      latitude: true,
+                      longitude: true,
+                      adresse: true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          livreur: {
+            select: {
+              id: true,
+              username: true,
+              prenom: true,
+              telephone: true,
+              note: true,
+              typeVehicule: true,
+              positionActuelle: true
+            }
+          }
+        }
+      });
+
+      // 2. Mettre à jour le statut de la commande
+      await tx.commande.update({
+        where: { id: commandeId },
+        data: {
+          status: 'ACCEPTEE',
+          livreurId: parseInt(livreurId),
+          acceptedAt: new Date()
+        }
+      });
+
+      // 3. Créer une notification dans l'historique
+      await tx.notificationHistory.create({
+        data: {
+          livreurId: parseInt(livreurId),
+          commandeId: commandeId,
+          message: `Commande #${commandeId} acceptée par ${livreur.prenom}`,
+          type: 'COMMANDE_ACCEPTEE',
+          send: true
+        }
+      });
+
+      return nouvelleLivraison;
+    });
+
+    console.log('✅ Livraison créée avec succès:', result.id);
+
+    // ✅ Notifier le client immédiatement
+    const notificationResult = await notifyClient(commande, livreur, 'commande_acceptee');
+    console.log('📱 Résultat notification client:', notificationResult.success);
+
+    // ✅ Émettre l'événement temps réel si WebSocket disponible
+    if (global.io) {
+      global.io.emit(`commande_${commandeId}_status`, {
+        status: 'ACCEPTEE',
+        livreur: {
+          id: livreur.id,
+          usernane: `${livreur.prenom} ${livreur.username}`,
+          telephone: livreur.telephone,
+          note: livreur.note,
+          typeVehicule: livreur.typeVehicule,
+          position: livreur.positionActuelle
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // ✅ Retourner la réponse complète
+    res.status(200).json({
+      success: true,
+      message: 'Commande acceptée avec succès',
+      commande: result,
+      livreur: {
+        id: livreur.id,
+        unername: `${livreur.prenom} ${livreur.username}`,
+        telephone: livreur.telephone,
+        note: livreur.note,
+        typeVehicule: livreur.typeVehicule
+      },
+      notificationSent: notificationResult.success
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur acceptation commande:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de l\'acceptation de la commande',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+},
 
   // Obtenir une commande par son ID
   async getCommandeById(req, res) {
