@@ -55,6 +55,7 @@ model User {
   articles          Article[]
   payments          Payement[]
   colis             Colis[]
+  livraison          Livraison[]
   otp               OTP?
   geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
   geolocalisationId Int?
@@ -208,13 +209,16 @@ model Commande {
   userId         Int?
   plat           Plats?         @relation(fields: [platsId], references: [id])
   platsId        Int?
-  livraison      Livraison?
+  livraison      Livraison[]
   payment        Payement?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   complements    CommandeComplement[]
   Menusrapide    Menusrapide[]
   
+
+  livreur       Livreur?        @relation(fields: [livreurId], references: [id])
+  livreurId     Int?           
 }
 
 model Colis {
@@ -231,9 +235,11 @@ model Colis {
   status          ColisStatus @default(EN_ATTENTE)
   user            User      @relation(fields: [userId], references: [id])
   userId          Int
-  livraison       Livraison? 
+  livraison       Livraison[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  livreur       Livreur?        @relation(fields: [livreurId], references: [id])
+  livreurId     Int? 
 }
 
 model Article {
@@ -255,20 +261,18 @@ model Article {
 model Livraison {
   id              Int      @id @default(autoincrement())
   status          LivraisonStatus @default(ASSIGNEE)
-  tempsEstime     String?  // "15-20 min"
-  heureAssignation DateTime @default(now())
-  heureRecuperation DateTime?
-  heureLivraison  DateTime?
-  createdAt       DateTime @default(now())
+  heureLivraison       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   livreurId       Int
   livreur         Livreur  @relation(fields: [livreurId], references: [id])
+  user            User    @relation(fields: [userId], references: [id])
+  userId          Int
+  commandeId       Int? 
+  commande         Commande?  @relation(fields: [commandeId], references: [id])
+  colisId          Int?
+  colis            Colis?   @relation(fields: [colisId], references: [id])
   historiquePositions HistoriquePosition[]
   serviceLivraison ServiceLivraison[]
-  commande        Commande  @relation(fields: [commandeId], references: [id])
-  commandeId      Int @unique
-  colis           Colis  @relation(fields: [colisId], references: [id])
-  colisId         Int @unique
 }
 
 model Livreur {
@@ -292,6 +296,8 @@ model Livreur {
   plaqueVehicule  String?
   NotificationHistory NotificationHistory[]
   HistoriquePosition HistoriquePosition[]
+  commande       Commande[]
+  Colis         Colis[]
 }
 
 
@@ -387,11 +393,13 @@ model NotificationHistory {
   titre       String
   message     String
   type        String   // 'COMMANDE', 'LIVRAISON', 'TRACKING'
-  send          Boolean  @default(false)
+  lu          Boolean  @default(false)
   createdAt   DateTime @default(now())
+  
+  // Relations
   userId      Int?
   user        User?    @relation(fields: [userId], references: [id])
-  commandeId   Int?
+  
   livreurId   Int?
   livreur     Livreur? @relation(fields: [livreurId], references: [id])
 }

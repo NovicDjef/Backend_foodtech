@@ -84,33 +84,64 @@ export default  {
   },
 
   // Mettre à jour un plat
+  // async updatePlat(req, res) {
+  //   try {
+  //     const { id } = req.params;
+  //     const { name, image, description, prix, ratings, categorieId } = req.body;
+
+  //     const updatedPlat = await prisma.plats.update({
+  //       where: { id: parseInt(id) },
+  //       data: {
+  //         name,
+  //         image,
+  //         description,
+  //         ratings : ratings? parseFloat(ratings) : undefined,
+  //         prix: prix ? parseFloat(prix) : undefined,
+  //         categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
+  //       },
+  //       include: {
+  //         categorie: true,
+  //       },
+  //     });
+
+  //     res.status(200).json({
+  //       message: "Plat mis à jour avec succès",
+  //       plat: updatedPlat
+  //     });
+  //   } catch (error) {
+  //     handleServerError(res, error);
+  //   }
+  // },
+
   async updatePlat(req, res) {
-    try {
-      const { id } = req.params;
-      const { name, image, description, prix, categorieId } = req.body;
+  try {
+    const { id } = req.params;
+    const { name, image, description, prix, ratings, categorieId } = req.body;
 
-      const updatedPlat = await prisma.plats.update({
-        where: { id: parseInt(id) },
-        data: {
-          name,
-          image,
-          description,
-          prix: prix ? parseFloat(prix) : undefined,
-          categorie: categorieId ? { connect: { id: parseInt(categorieId) } } : undefined,
-        },
-        include: {
-          categorie: true,
-        },
-      });
-
-      res.status(200).json({
-        message: "Plat mis à jour avec succès",
-        plat: updatedPlat
-      });
-    } catch (error) {
-      handleServerError(res, error);
+    const data = {};
+    if (name) data.name = name;
+    if (image) data.image = image;
+    if (description) data.description = description;
+    if (ratings !== undefined) data.ratings = parseFloat(ratings);
+    if (prix !== undefined) data.prix = parseFloat(prix);
+    if (categorieId) {
+      data.categorie = { connect: { id: parseInt(categorieId) } };
     }
-  },
+
+    const updatedPlat = await prisma.plats.update({
+      where: { id: parseInt(id) },
+      data,
+      include: { categorie: true },
+    });
+
+    res.status(200).json({
+      message: "Plat mis à jour avec succès",
+      plat: updatedPlat,
+    });
+  } catch (error) {
+    handleServerError(res, error);
+  }
+},
 
   // Supprimer un plat
   async deletePlat(req, res) {

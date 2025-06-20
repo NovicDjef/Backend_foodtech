@@ -1,5 +1,6 @@
 import express from 'express';
 import livraisonController from '../controllers/livraisonController.js';
+import authMiddleware from '../middlewares/userAuthMiddleware.js';
 // import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
 const router = express.Router();
@@ -24,6 +25,8 @@ router.post('/commandes/accept', livraisonController.postLivraisonAsAccepted);
 router.get('/livraisons/active/:livreurId', livraisonController.getLivraisonsActive);
 router.get('/livraisons/historique/:livreurId', livraisonController.getLivraisonsHistorique);
 router.get('/commandes/livraison/:id', livraisonController.getCommandeLivraison);
+router.post('/livraison', livraisonController.postNouvelleLivraison);
+
 
 router.get('/tracking/:commandeId', livraisonController.getLivraisonsTracking);
 router.post('/assign', livraisonController.assignleLivraison);

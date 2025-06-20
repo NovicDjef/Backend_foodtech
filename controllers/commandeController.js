@@ -411,14 +411,17 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
         // livraison: true,
         // complements: true,
         // Menusrapide: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-
       });
 
       res.status(200).json(commandes);
     } catch (error) {
       handleServerError(res, error);
     }
+    
   },
 
   // controllers/commandeController.js
@@ -754,23 +757,68 @@ async accepterCommande (req, res) {
 
   // Mettre à jour le statut d'une commande
   async updateCommandeStatus(req, res) {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      const updatedCommande = await prisma.commande.update({
-        where: { id: parseInt(id) },
-        data: { status },
-      });
-
-      res.status(200).json({
-        message: "Statut de la commande mis à jour avec succès",
-        commande: updatedCommande
-      });
-    } catch (error) {
-      handleServerError(res, error);
+  try {
+    const { id } = req.params;
+    const { status, livreurId } = req.body; // ✅ CORRECTION: Récupérer AUSSI livreurId
+    
+    console.log(`📡 Mise à jour commande ${id}:`, { status, livreurId });
+    
+    // ✅ Préparer les données à mettre à jour
+    const updateData = { 
+      status,
+      updatedAt: new Date() // ✅ Bonus: mettre à jour le timestamp
+    };
+    
+    // ✅ Ajouter livreurId seulement s'il est fourni
+    if (livreurId !== undefined && livreurId !== null) {
+      updateData.livreurId = parseInt(livreurId);
+      console.log("✅ Assignation livreur:", updateData.livreurId);
     }
-  },
+    
+    console.log("📦 Données de mise à jour complètes:", updateData);
+    
+    const updatedCommande = await prisma.commande.update({
+      where: { id: parseInt(id) },
+      data: updateData, // ✅ Utiliser updateData au lieu de juste { status }
+      include: { // ✅ Bonus: inclure les relations pour le front
+        user: {
+          select: { id: true, username: true, phone: true }
+        },
+        plat: {
+          include: {
+            categorie: {
+              include: {
+                menu: {
+                  include: {
+                    restaurant: {
+                      select: { name: true, adresse: true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    console.log("✅ Commande mise à jour:", {
+      id: updatedCommande.id,
+      status: updatedCommande.status,
+      livreurId: updatedCommande.livreurId // ✅ Vérifier que c'est bien mis à jour
+    });
+    
+    res.status(200).json({
+      success: true, // ✅ Ajouter success pour cohérence
+      message: "Statut de la commande mis à jour avec succès",
+      commande: updatedCommande
+    });
+    
+  } catch (error) {
+    console.error("❌ Erreur updateCommandeStatus:", error);
+    handleServerError(res, error);
+  }
+},
 
   // Ajouter un paiement à une commande
   async addPaymentToCommande(req, res) {

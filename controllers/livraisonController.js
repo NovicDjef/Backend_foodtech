@@ -27,6 +27,75 @@ const notifyClient = async (clientPushToken, notification) => {
 
 export default  {
 
+// controllers/livraisonController.js
+
+async postNouvelleLivraison(req, res) {
+  try {
+    const { livreurId, userId, commandeId, colisId, status } = req.body;
+
+    if (!livreurId || !userId) {
+      return res.status(400).json({ message: '❌ livreurId et userId sont requis' });
+    }
+
+    // 1. Vérifier l'existence du livreur
+    const livreurExiste = await prisma.livreur.findUnique({
+      where: { id: parseInt(livreurId) }
+    });
+    if (!livreurExiste) {
+      return res.status(404).json({ message: 'Livreur non trouvé' });
+    }
+
+    // 2. Vérifier l'existence du client (user)
+    const userExiste = await prisma.user.findUnique({
+      where: { id: parseInt(userId) }
+    });
+    if (!userExiste) {
+      return res.status(404).json({ message: 'Utilisateur client non trouvé' });
+    }
+
+    // 3. Créer la livraison
+    const livraison = await prisma.livraison.create({
+      data: {
+        livreurId: parseInt(livreurId),
+        userId: parseInt(userId),
+        commandeId: commandeId ? parseInt(commandeId) : undefined,
+        colisId: colisId ? parseInt(colisId) : undefined,
+        status: status || 'ASSIGNEE',
+      },
+      include: {
+        livreur: {
+          select: { username: true, prenom: true, telephone: true }
+        },
+        user: {
+          select: { username: true, phone: true }
+        },
+        commande: {
+          include: {
+            plat: true
+          }
+        },
+        colis: true,
+        historiquePositions: true,
+        serviceLivraison: true
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '📦 Livraison créée avec succès',
+      livraison
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur création livraison:', error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur serveur lors de la création de la livraison",
+      details: error.message
+    });
+  }
+},
+
 
 
     // ✅ API : Livreur accepte une commande
@@ -38,8 +107,28 @@ async postLivraisonAsAccepted (req, res) {
     const commande = await prisma.commande.findUnique({
       where: { id: parseInt(commandeId) },
       include: {
-        user: { select: { name: true, pushToken: true } },
-        plat: { include: { restaurant: true } }
+        user: { select: { username: true, phone: true } },
+       plat: {
+                include: {
+                categorie: {
+                    include: {
+                    menu: {
+                        include: {
+                        restaurant: {
+                            select: {
+                            name: true,
+                            adresse: true,
+                            latitude: true,
+                            longitude: true
+                            }
+                        }
+                        }
+                    }
+                    }
+                }
+                }
+            
+            }
       }
     });
 
@@ -96,14 +185,44 @@ async postLivraisonAsAccepted (req, res) {
     // 6. Récupérer les détails complets pour le livreur
     const livraisonComplete = await prisma.livraison.findUnique({
       where: { id: livraison.id },
-      include: {
-        commande: {
-          include: {
-            user: { select: { name: true } },
-            plat: { include: { restaurant: true } }
+     include: {
+  Commande: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          phone: true
+        }
+      },
+      plat: {
+        include: {
+          restaurant: {
+            select: {
+              name: true,
+              address: true,
+              latitude: true,
+              longitude: true,
+              telephone: true
+            }
           }
         }
       }
+    }
+  },
+  livreur: {
+    select: {
+      id: true,
+      username: true,
+      prenom: true,
+      telephone: true
+    }
+  },
+  historiquePositions: true,
+  serviceLivraison: true,
+  colis: true
+}
+
     });
 
     res.json({
@@ -266,42 +385,56 @@ async getLivraisonsActive (req, res) {
 },
 
 // GET /api/livraisons/historique/:livreurId?period=week|month|all
-async getLivraisonsHistorique (req, res) {
+async getLivraisonsHistorique(req, res) {
   try {
     const { livreurId } = req.params;
     const { period = 'month' } = req.query;
-
-
-     const livreurIdInt = parseInt(livreurId);
-    if (isNaN(livreurIdInt)) {
-      return res.status(400).json({ success: false, message: 'livreurId invalide' });
-    } 
-
-    // Calculer la date de début selon la période
-    let dateDebut = new Date();
     
+    console.log(`📜 Récupération historique pour livreur ${livreurId}, période: ${period}`);
+    
+    const livreurIdInt = parseInt(livreurId);
+    if (isNaN(livreurIdInt)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'livreurId invalide',
+        livraisons: []
+      });
+    }
+
+    // ✅ Calculer la date de début selon la période
+    let dateDebut = new Date();
     switch (period) {
       case 'week':
+      case '7':
         dateDebut.setDate(dateDebut.getDate() - 7);
         break;
       case 'month':
+      case '30':
         dateDebut.setMonth(dateDebut.getMonth() - 1);
         break;
       case 'all':
         dateDebut = new Date('2020-01-01'); // Date très ancienne
         break;
       default:
-        dateDebut.setMonth(dateDebut.getMonth() - 1);
+        // Si c'est un nombre de jours
+        const days = parseInt(period);
+        if (!isNaN(days)) {
+          dateDebut.setDate(dateDebut.getDate() - days);
+        } else {
+          dateDebut.setMonth(dateDebut.getMonth() - 1);
+        }
     }
 
+    console.log(`📅 Recherche depuis le: ${dateDebut.toISOString()}`);
+
+    // ✅ CORRECTION PRINCIPALE: Chercher les livraisons TERMINEES (LIVREE)
     const historiqueLivraisons = await prisma.livraison.findMany({
       where: {
         livreurId: livreurIdInt,
-       status: {
-        in: ["ASSIGNEE", "EN_ROUTE"] 
-        },
+        status: "LIVREE", // ✅ CORRECTION: Seulement les livraisons terminées
         heureLivraison: {
-          gte: dateDebut
+          gte: dateDebut,
+          lte: new Date() // ✅ Pas de livraisons futures
         }
       },
       include: {
@@ -329,25 +462,40 @@ async getLivraisonsHistorique (req, res) {
         }
       },
       orderBy: {
-        heureLivraison: 'desc'
+        heureLivraison: 'desc' // Les plus récentes en premier
       },
-      take: 50 // Limiter à 50 dernières livraisons
+      take: 100 // ✅ Augmenté la limite pour l'historique
     });
 
-    console.log(`📚 ${historiqueLivraisons.length} livraisons dans l'historique (${period}) pour livreur ${livreurId}`);
+    console.log(`📚 ${historiqueLivraisons.length} livraisons trouvées dans l'historique (${period}) pour livreur ${livreurId}`);
+    
+    // ✅ Debug des données retournées
+    if (historiqueLivraisons.length > 0) {
+      console.log("🔍 Première livraison exemple:", {
+        id: historiqueLivraisons[0].id,
+        status: historiqueLivraisons[0].status,
+        heureLivraison: historiqueLivraisons[0].heureLivraison,
+        commandeId: historiqueLivraisons[0].commande?.id
+      });
+    }
 
     res.json({
       success: true,
       livraisons: historiqueLivraisons,
-      period: period
+      period: period,
+      total: historiqueLivraisons.length,
+      dateDebut: dateDebut.toISOString()
     });
 
   } catch (error) {
     console.error('❌ Erreur historique livraisons:', error);
+    console.error('❌ Stack trace:', error.stack);
+    
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de l\'historique',
-      livraisons: []
+      livraisons: [],
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 },
@@ -360,22 +508,22 @@ async getDetailsLivraison (req, res) {
 
     const livraison = await prisma.livraison.findUnique({
       where: { id: parseInt(id) },
-      include: {
-        commande: {
-          include: {
-            user: {
-              select: { name: true, email: true }
-            },
-            plat: {
-              include: {
-                restaurant: {
-                  select: { name: true, address: true, latitude: true, longitude: true }
-                }
-              }
-            }
-          }
-        }
-      }
+      // include: {
+      //   commande: {
+      //     include: {
+      //       user: {
+      //         select: { name: true, email: true }
+      //       },
+      //       plat: {
+      //         include: {
+      //           restaurant: {
+      //             select: { name: true, address: true, latitude: true, longitude: true }
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
     });
 
     if (!livraison) {
@@ -410,7 +558,7 @@ async getCommandeLivraison (req, res) {
         commande: {
           include: {
             user: {
-              select: { id: true, name: true, email: true }
+              select: { id: true, username: true, phone: true }
             },
             plat: {
               include: {
@@ -428,7 +576,7 @@ async getCommandeLivraison (req, res) {
           }
         },
         livreur: {
-          select: { id: true, nom: true, prenom: true, telephone: true }
+          select: { id: true, username: true, prenom: true, telephone: true }
         }
       }
     });
