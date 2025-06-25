@@ -12,6 +12,7 @@ router.post("/usersIdByPhone", userController.PostByPhone);
 router.post("/signup", upload.single('image'), userController.signUpUser);
 router.post('/login', userController.login);
 router.post("/resetPassword", userController.resetPassword);
+router.patch('/user/:id/push-token', userController.postRegisterPushToken);
 router.get("/users", userController.getAllUser);
 router.get("/users/:id", adminAuthMiddleware, userController.getUserById);
 router.put("/users/:id", adminAuthMiddleware, upload.single('image'), userController.updateUserProfile);

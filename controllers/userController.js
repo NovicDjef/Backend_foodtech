@@ -422,10 +422,33 @@ async resetPassword(req, res) {
     }
   },
 
-  // Fonction pour générer un code OTP
+// controllers/userController.js
 
+async postRegisterPushToken(req, res) {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { pushToken } = req.body;
 
-};
+    if (!pushToken) {
+      return res.status(400).json({ success: false, message: "Le pushToken est requis." });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { pushToken }
+    });
+
+    console.log(`✅ Token enregistré pour user ${userId}: ${pushToken}`);
+
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.error("❌ Erreur enregistrement pushToken:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+},
+
+}
+
 
 function handleServerError(res, error) {
   console.error('Erreur serveur:', error);

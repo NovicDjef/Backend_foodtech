@@ -18,7 +18,7 @@ router.post('/commandes/:commandeId/accepter', commandeController.accepterComman
 router.post('/commandes', userAuthMiddleware, commandeController.createCommande);
 // router.put('/commandes/:id', commandeController.updateCommande);
 router.delete('/commandes/:id', userAuthMiddleware, commandeController.deleteCommande);
-router.patch('/commande/:id', userAuthMiddleware, commandeController.updateCommandeStatus);
+router.patch('/commande/:id', commandeController.updateCommandeStatus);
 router.post('/commandes/:id/payment', userAuthMiddleware, commandeController.addPaymentToCommande);
 
 export default router;

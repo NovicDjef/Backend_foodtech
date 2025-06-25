@@ -1,12 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import admin from 'firebase-admin';
 import { Expo } from 'expo-server-sdk';
+// import expo from '../utils/notifications/expo.js';
+import notifyClient from '../utils/notifications/notifyClient.js';
 
 const prisma = new PrismaClient();
+
 const expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN
 });
-
 
 const notifyAllLivreurs = async (commande) => {
   try {
@@ -302,52 +304,6 @@ async createCommande(req, res) {
   }
 },
 
-// async notifyAllLivreurs (commandeData) {
-//   try {
-//     // 1. Récupérer tous les livreurs en ligne avec token push
-//     const livreursOnline = await prisma.livreur.findMany({
-//       where: {
-//         disponible: true, // En ligne
-//         pushToken: { not: null } // Ont un token push
-//       }
-//     });
-
-//     console.log(`📢 Notification de commande à ${livreursOnline.length} livreurs`);
-//     console.log(`📢 Notification de commande ${commandeData.id} à ${livreursOnline.length} livreurs`);
-    
-//     // 2. Préparer les données de notification
-//     const notificationData = {
-//       commandeId: commandeData.id,
-//       restaurant: commandeData.plat.restaurant.name,
-//       clientNom: commandeData.user.name,
-//       clientTelephone: commandeData.telephone,
-//       adresseLivraison: commandeData.position,
-//       prix: commandeData.prix,
-//       platNom: commandeData.plat.name,
-//       quantity: commandeData.quantity,
-//       recommandations: commandeData.recommandation || '',
-//       restaurantLat: commandeData.plat.restaurant.latitude,
-//       restaurantLng: commandeData.plat.restaurant.longitude,
-//       timestamp: new Date().toISOString()
-//     };
-
-//     // 3. Envoyer notification à tous les livreurs
-//     const notificationPromises = livreursOnline.map(livreur => 
-//       sendPushNotificationToLivreur(livreur.pushToken, notificationData, livreur.id)
-//     );
-
-//     await Promise.all(notificationPromises);
-    
-//     return { success: true, livreurCount: livreursOnline.length };
-    
-//   } catch (error) {
-//     console.error('❌ Erreur notification livreurs:', error);
-//     throw error;
-//   }
-// },
-
-// 🔔 Envoyer notification push individuelle
-
 
 
 async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
@@ -424,70 +380,6 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
     
   },
 
-  // controllers/commandeController.js
-
-// async accepterCommande(req, res) {
-//   try {
-//     const commandeId = parseInt(req.params.commandeId);
-//     const { livreurId } = req.body;
-
-//     if (!commandeId || !livreurId) {
-//       return res.status(400).json({ success: false, message: 'commandeId et livreurId requis' });
-//     }
-
-//     // Vérifier si la commande existe
-//     const commande = await prisma.commande.findUnique({
-//       where: { id: commandeId }
-//     });
-
-//     if (!commande) {
-//       return res.status(404).json({ success: false, message: 'Commande non trouvée' });
-//     }
-
-//     // Vérifier si le livreur existe
-//     const livreur = await prisma.livreur.findUnique({
-//       where: { id: livreurId }
-//     });
-
-//     if (!livreur) {
-//       return res.status(404).json({ success: false, message: 'Livreur non trouvé' });
-//     }
-
-//     // Créer une livraison
-//     const livraison = await prisma.livraison.create({
-//       data: {
-//         commandeId: commandeId,
-//         livreurId: livreurId,
-//         status: 'EN_COURS', // ou ce que ton enum contient
-//         dateLivraison: new Date()
-//       },
-//       include: {
-//         commande: true,
-//         livreur: true
-//       }
-//     });
-
-//     // Mettre à jour le status de la commande
-//     await prisma.commande.update({
-//       where: { id: commandeId },
-//       data: {
-//         status: 'EN_LIVRAISON'
-//       }
-//     });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: 'Commande acceptée',
-//       commande: livraison.commande
-//     });
-//   } catch (error) {
-//     console.error('❌ Erreur acceptation commande:', error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Erreur serveur lors de l\'acceptation de la commande'
-//     });
-//   }
-// },
 
 // ✅ Fonction principale d'acceptation de commande
 async accepterCommande (req, res) {
@@ -653,7 +545,9 @@ async accepterCommande (req, res) {
     console.log('✅ Livraison créée avec succès:', result.id);
 
     // ✅ Notifier le client immédiatement
-    const notificationResult = await notifyClient(commande, livreur, 'commande_acceptee');
+    
+
+    const notificationResult = await notifyClient(commande, 'VALIDER', livreur);
     console.log('📱 Résultat notification client:', notificationResult.success);
 
     // ✅ Émettre l'événement temps réel si WebSocket disponible
@@ -703,12 +597,12 @@ async accepterCommande (req, res) {
       const { id } = req.params;
       const commande = await prisma.commande.findUnique({
         where: { id: parseInt(id) },
-        // include: {
-        //   user: true,
-        //   plats: true,
-        //   payement: true,
-        //   livraison: true,
-        // }
+        include: {
+          user: true,
+          plats: true,
+          payement: true,
+          livraison: true,
+        }
       });
 
       if (!commande) {
@@ -756,33 +650,19 @@ async accepterCommande (req, res) {
   },
 
   // Mettre à jour le statut d'une commande
-  async updateCommandeStatus(req, res) {
+async updateCommandeStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status, livreurId } = req.body; // ✅ CORRECTION: Récupérer AUSSI livreurId
+    const { status, livreurId, restaurantName, raison } = req.body;
     
     console.log(`📡 Mise à jour commande ${id}:`, { status, livreurId });
-    
-    // ✅ Préparer les données à mettre à jour
-    const updateData = { 
-      status,
-      updatedAt: new Date() // ✅ Bonus: mettre à jour le timestamp
-    };
-    
-    // ✅ Ajouter livreurId seulement s'il est fourni
-    if (livreurId !== undefined && livreurId !== null) {
-      updateData.livreurId = parseInt(livreurId);
-      console.log("✅ Assignation livreur:", updateData.livreurId);
-    }
-    
-    console.log("📦 Données de mise à jour complètes:", updateData);
-    
-    const updatedCommande = await prisma.commande.update({
+
+    // Récupérer la commande actuelle pour connaître l'ancien statut
+    const currentCommande = await prisma.commande.findUnique({
       where: { id: parseInt(id) },
-      data: updateData, // ✅ Utiliser updateData au lieu de juste { status }
-      include: { // ✅ Bonus: inclure les relations pour le front
+      include: {
         user: {
-          select: { id: true, username: true, phone: true }
+          select: { id: true, username: true, pushToken: true }
         },
         plat: {
           include: {
@@ -801,19 +681,126 @@ async accepterCommande (req, res) {
         }
       }
     });
-    
+
+    if (!currentCommande) {
+      return res.status(404).json({
+        success: false,
+        message: "Commande non trouvée"
+      });
+    }
+
+    const oldStatus = currentCommande.status;
+    console.log(`📋 Changement de statut: ${oldStatus} → ${status}`);
+
+    // Préparer les données à mettre à jour
+    const updateData = {
+      status,
+      updatedAt: new Date()
+    };
+
+    // Ajouter livreurId seulement s'il est fourni
+    if (livreurId !== undefined && livreurId !== null) {
+      updateData.livreurId = parseInt(livreurId);
+      console.log("✅ Assignation livreur:", updateData.livreurId);
+    }
+
+    console.log("📦 Données de mise à jour complètes:", updateData);
+
+    // Mettre à jour la commande
+    const updatedCommande = await prisma.commande.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        user: {
+          select: { id: true, username: true, phone: true, pushToken: true }
+        },
+        plat: {
+          include: {
+            categorie: {
+              include: {
+                menu: {
+                  include: {
+                    restaurant: {
+                      select: { name: true, adresse: true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // 🚀 NOUVEAU: Notifications automatiques au client
+    let clientNotificationResult = { success: false, message: 'Pas de notification' };
+
+    // Récupérer les infos du livreur si nécessaire
+    let livreurInfo = null;
+    if (livreurId) {
+      livreurInfo = await prisma.livreur.findUnique({
+        where: { id: parseInt(livreurId) },
+        select: {
+          id: true,
+          username: true,
+          prenom: true,
+          typeVehicule: true
+        }
+      });
+    }
+
+    // Envoyer la notification selon le statut
+    try {
+      const NOTIFIABLE_STATUSES = ['VALIDER', 'EN_COURS', 'LIVREE', 'ANNULEE'];
+
+      const shouldNotify = NOTIFIABLE_STATUSES.includes(status);
+      
+      if (shouldNotify && updatedCommande.user.pushToken) {
+        console.log(`📱 Envoi notification client pour statut: ${status}`);
+        
+        clientNotificationResult = await notifyClient(
+          updatedCommande, 
+          status, 
+          livreurInfo,
+          { 
+            restaurantName: restaurantName || updatedCommande.plat?.categorie?.menu?.restaurant?.name,
+            raison: raison || 'Non spécifiée'
+          }
+        );
+      } else if (shouldNotify && !updatedCommande.user.pushToken) {
+        console.warn(`⚠️ Client ${updatedCommande.user.id} sans token push - notification non envoyée`);
+      }
+
+    } catch (notificationError) {
+      // Les erreurs de notification ne doivent pas faire échouer la mise à jour
+      console.error('❌ Erreur notification client (non critique):', notificationError);
+      clientNotificationResult = {
+        success: false,
+        error: notificationError.message,
+        message: 'Erreur notification non critique'
+      };
+    }
+
     console.log("✅ Commande mise à jour:", {
       id: updatedCommande.id,
       status: updatedCommande.status,
-      livreurId: updatedCommande.livreurId // ✅ Vérifier que c'est bien mis à jour
+      livreurId: updatedCommande.livreurId,
+      clientNotified: clientNotificationResult.success
     });
-    
+
     res.status(200).json({
-      success: true, // ✅ Ajouter success pour cohérence
+      success: true,
       message: "Statut de la commande mis à jour avec succès",
-      commande: updatedCommande
+      commande: updatedCommande,
+      // 🆕 Informations sur la notification client
+      clientNotification: {
+        sent: clientNotificationResult.success,
+        message: clientNotificationResult.message,
+        userHasPushToken: !!updatedCommande.user?.pushToken,
+        statusChanged: oldStatus !== status
+      }
     });
-    
+
   } catch (error) {
     console.error("❌ Erreur updateCommandeStatus:", error);
     handleServerError(res, error);

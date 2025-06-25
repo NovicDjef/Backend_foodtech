@@ -47,6 +47,7 @@ model User {
   socialId          String?            
   provider          String?            
   isEmailVerified   Boolean            @default(false)
+  pushToken         String?
   commandes         Commande[]
   historiques       Historique[]
   reservations      Reservation[]
