@@ -29,7 +29,6 @@ import notificationRoute from "./routes/notificationRoute.js"
 import complementsRoute from "./routes/complementsRoute.js"
 import livreurRoute from "./routes/livreurRoute.js"
 import { Expo } from 'expo-server-sdk';
-import initializeFirebase from './config/firebase-config.js';
 
 dotenv.config();
 
@@ -37,7 +36,6 @@ const server = express()
 server.use(express.json())
 server.use(express.urlencoded({ extended: true }))
 
-initializeFirebase();
 
 // ****** pour le serveur distant  ******** //
 // const allowedOrigins = [
