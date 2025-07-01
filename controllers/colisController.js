@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import notifyClient from '../utils/notifications/notifyClient.js';
 
 const prisma = new PrismaClient();
 
@@ -39,6 +40,174 @@ export default {
       handleServerError(res, error);
     }
   },
+
+  async accepterColis (req, res) {
+  try {
+    const colisId = parseInt(req.params.id); // ✅ Corrigé : req.params.id au lieu de commandeId
+    const { livreurId } = req.body;
+    
+    console.log(`📦 Acceptation colis ${colisId} par livreur ${livreurId}`);
+
+    // ✅ Vérifier si la colis existe et est disponible
+    const colis = await prisma.colis.findFirst({
+      where: { 
+        id: 1,
+        status: 'EN_ATTENTE'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            phone: true,
+            //pushToken: true
+          }
+        },
+        livraison: true
+      }
+    });
+
+    if (!colis) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'colis non trouvée ou déjà acceptée' 
+      });
+    }
+
+    // ✅ Vérifier si le livreur existe et est disponible
+    const livreur = await prisma.livreur.findFirst({
+      where: { 
+        id: parseInt(livreurId),
+        disponible: true
+      },
+      select: {
+        id: true,
+        username: true,
+        prenom: true,
+        telephone: true,
+        note: true,
+        typeVehicule: true,
+        positionActuelle: true,
+        pushToken: true
+      }
+    });
+
+    if (!livreur) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Livreur non trouvé ou indisponible' 
+      });
+    }
+
+    // ✅ Transaction pour assurer la cohérence
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Créer la livraison
+      const nouvelleLivraison = await tx.livraison.create({
+        data: {
+          colisId: colisId,
+          livreurId: parseInt(livreurId),
+          status: 'ACCEPTEE',
+          dateAcceptation: new Date(),
+          dateLivraison: new Date() // Date estimée
+        },
+        include: {
+          commande: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  phone: true
+                }
+              },
+            }
+          },
+          livreur: {
+            select: {
+              id: true,
+              username: true,
+              prenom: true,
+              telephone: true,
+              note: true,
+              typeVehicule: true,
+              positionActuelle: true
+            }
+          }
+        }
+      });
+
+      // 2. Mettre à jour le statut de la commande
+      await tx.colis.update({
+        where: { id: colisId },
+        data: {
+          status: 'ACCEPTEE',
+          livreurId: parseInt(livreurId),
+          acceptedAt: new Date()
+        }
+      });
+
+      // 3. Créer une notification dans l'historique
+      await tx.notificationHistory.create({
+        data: {
+          livreurId: parseInt(livreurId),
+          colisId: colisId,
+          message: `Commande #${colisId} acceptée par ${livreur.prenom}`,
+          type: 'COMMANDE_ACCEPTEE',
+          send: true
+        }
+      });
+
+      return nouvelleLivraison;
+    });
+
+    console.log('✅ Livraison créée avec succès:', result.id);
+
+    // ✅ Notifier le client immédiatement
+    
+
+    const notificationResult = await notifyClient(colis, 'VALIDER', livreur);
+    console.log('📱 Résultat notification client:', notificationResult.success);
+
+    // ✅ Émettre l'événement temps réel si WebSocket disponible
+    if (global.io) {
+      global.io.emit(`commande_${colisId}_status`, {
+        status: 'ACCEPTEE',
+        livreur: {
+          id: livreur.id,
+          usernane: `${livreur.prenom} ${livreur.username}`,
+          telephone: livreur.telephone,
+          note: livreur.note,
+          typeVehicule: livreur.typeVehicule,
+          position: livreur.positionActuelle
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // ✅ Retourner la réponse complète
+    res.status(200).json({
+      success: true,
+      message: 'Commande acceptée avec succès',
+      commande: result,
+      livreur: {
+        id: livreur.id,
+        unername: `${livreur.prenom} ${livreur.username}`,
+        telephone: livreur.telephone,
+        note: livreur.note,
+        typeVehicule: livreur.typeVehicule
+      },
+      notificationSent: notificationResult.success
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur acceptation commande:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur lors de l\'acceptation de la commande',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+},
 
   // Obtenir tous les colis
   async getAllColis(req, res) {
