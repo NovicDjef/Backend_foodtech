@@ -679,44 +679,90 @@ async toggleLivreurDisponibilite(req, res) {
   },
 
   // Récupérer tous les livreurs
-  async getAllLivreur(req, res) {
-    try {
-      const livreurs = await prisma.livreur.findMany({
-        select: {
-          id: true,
-          username: true,
-          prenom: true,
-          email: true,
-          telephone: true,
-          image: true,
-          disponible: true,
-          note: true,
-          totalLivraisons: true,
-          createdAt: true,
-          updatedAt: true,
-          typeVehicule: true,
-          plaqueVehicule: true,
-          positionActuelle: true,
-          // Relations
-          livraisons: {
-            select: {
-              id: true,
-              createdAt: true,
-              // ajoutez d'autres champs de livraison si nécessaire
-            }
-          }
-        }
-      });
+  // async getAllLivreur(req, res) {
+  //   try {
+  //     const livreurs = await prisma.livreur.findMany({
+  //       select: {
+  //         id: true,
+  //         username: true,
+  //         prenom: true,
+  //         email: true,
+  //         telephone: true,
+  //         image: true,
+  //         disponible: true,
+  //         note: true,
+  //         totalLivraisons: true,
+  //         createdAt: true,
+  //         updatedAt: true,
+  //         typeVehicule: true,
+  //         plaqueVehicule: true,
+  //         positionActuelle: true,
+  //         // Relations
+  //         livraisons: {
+  //           select: {
+  //             id: true,
+  //             status: true,
+  //             livreurId: true,
+  //             createdAt: true,
+  //             updatedAt: true
+  //           }
+  //         }
+  //       }
+  //     });
 
-      res.status(200).json({
-        message: 'Livreurs récupérés avec succès',
-        livreurs,
-        count: livreurs.length
-      });
-    } catch (error) {
-      handleServerError(res, error);
-    }
-  },
+  //     res.status(200).json({
+  //       message: 'Livreurs récupérés avec succès',
+  //       livreurs,
+  //       count: livreurs.length
+  //     });
+  //   } catch (error) {
+  //     handleServerError(res, error);
+  //   }
+  // },
+  async getAllLivreur(req, res) {
+  try {
+    const livreurs = await prisma.livreur.findMany({
+      // select: {
+      //   id: true,
+      //   username: true,
+      //   prenom: true,
+      //   email: true,
+      //   telephone: true,
+      //   image: true,
+      //   disponible: true,
+      //   note: true,
+      //   totalLivraisons: true,
+      //   createdAt: true,
+      //   updatedAt: true,
+      //   typeVehicule: true,
+      //   plaqueVehicule: true,
+      //   positionActuelle: true, // tu peux retirer si tu doutes
+      //   livraisons: {
+      //     select: {
+      //       id: true,
+      //       heureLivraison: true,
+      //       status: true,
+      //       createdAt: true,
+      //     }
+      //   }
+      // }
+    });
+
+    res.status(200).json({
+      message: 'Livreurs récupérés avec succès',
+      livreurs,
+      count: livreurs.length
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      meta: error.meta
+    });
+  }
+},
+
 
   // Supprimer un livreur
   async deleteLivreur(req, res) {

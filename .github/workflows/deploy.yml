@@ -39,7 +39,7 @@ jobs:
             echo "📦 Creating backup..."
             cp -r $APP_DIR $BACKUP_DIR/api-backup-$(date +%Y%m%d-%H%M%S) || echo "Backup failed"
             rm -rf $APP_DIR/*
-            rm -rf $APP_DIR/.[^.]* || true
+            rm -rf $APP_DIR/.[^.]*
           fi
           
           # Clone or pull latest code
@@ -49,7 +49,7 @@ jobs:
           
           # Install dependencies
           echo "📦 Installing dependencies..."
-          npm install --omit=dev
+          npm install 
           
           # ✅ Generate Prisma Client
           echo "⚙️ Generating Prisma Client..."
@@ -90,5 +90,3 @@ jobs:
           # Clean old backups (keep only last 5)
           cd $BACKUP_DIR
           ls -t | tail -n +6 | xargs -r rm -rf
-          
-          echo "🌐 API should be available at: https://api.novic.dev"
