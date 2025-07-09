@@ -38,7 +38,7 @@ console.log("restaurant :", newRestaurant)
     try {
       const restaurants = await prisma.restaurant.findMany({
         include: {
-          menus: true,
+          categories: true,
           heuresOuverture: true,
           ville: true,
           admin: {
@@ -64,7 +64,7 @@ console.log("restaurant :", newRestaurant)
       const restaurant = await prisma.restaurant.findUnique({
         where: { id: parseInt(id) },
         include: {
-          menus: true,
+          categories: true,
           heuresOuverture: true,
           ville: true,
           admin: {

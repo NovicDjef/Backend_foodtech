@@ -88,7 +88,7 @@ model Restaurant {
   ratings         Float             @default(0)
   latitude        Float
   longitude       Float
-  menus           Menu[]
+  categories      Categorie[]
   articles        Article[]
   reservations    Reservation[]
   heuresOuverture HeuresOuverture[]
@@ -119,9 +119,6 @@ model Ville {
 model Menu {
   id           Int         @id @default(autoincrement())
   name         String
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
-  restaurantId Int
-  categories   Categorie[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
@@ -132,8 +129,8 @@ model Categorie {
   image       String
   description String?
   plats       Plats[]
-  menu        Menu?     @relation(fields: [menuId], references: [id])
-  menuId      Int?
+  restaurant  Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId Int  
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

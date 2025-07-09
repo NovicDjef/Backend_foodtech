@@ -6,17 +6,17 @@ const prisma = new PrismaClient();
   // Créer une nouvelle catégorie
   async createCategorie(req, res) {
     try {
-      const { name, image, description, menuId } = req.body;
+      const { name, image, description, restaurantId } = req.body;
       const imageCategorie = req.file? req.file.path : null;
       const newCategorie = await prisma.categorie.create({
         data: {
           name,
           image: imageCategorie,
           description,
-          menu: menuId ? { connect: { id: parseInt(menuId) } } : undefined,
+          restaurant: restaurantId ? { connect: { id: parseInt(restaurantId) } } : undefined,
         },
         include: {
-          menu: true,
+          restaurant: true,
         },
       });
 
@@ -34,7 +34,7 @@ const prisma = new PrismaClient();
     try {
       const categories = await prisma.categorie.findMany({
         include: {
-          menu: true,
+          restaurant: true,
           plats: true,
         }
       });
@@ -52,7 +52,7 @@ const prisma = new PrismaClient();
       const categorie = await prisma.categorie.findUnique({
         where: { id: parseInt(id) },
         include: {
-          menu: true,
+          restaurant: true,
           plats: true,
         }
       });
@@ -71,7 +71,7 @@ const prisma = new PrismaClient();
   async updateCategorie(req, res) {
     try {
       const { id } = req.params;
-      const { name, image, description, menuId } = req.body;
+      const { name, image, description, restaurantId } = req.body;
 
       const updatedCategorie = await prisma.categorie.update({
         where: { id: parseInt(id) },
@@ -79,10 +79,10 @@ const prisma = new PrismaClient();
           name,
           image,
           description,
-          menu: menuId ? { connect: { id: parseInt(menuId) } } : undefined,
+          restaurant: restaurantId ? { connect: { id: parseInt(restaurantId) } } : undefined,
         },
         include: {
-          menu: true,
+          restaurant: true,
         },
       });
 
@@ -167,9 +167,9 @@ const prisma = new PrismaClient();
   // Obtenir les catégories d'un menu spécifique
   async getCategoriesByMenu(req, res) {
     try {
-      const { menuId } = req.params;
+      const { restaurantId } = req.params;
       const categories = await prisma.categorie.findMany({
-        where: { menuId: parseInt(menuId) },
+        where: { restaurantId: parseInt(restaurantId) },
         include: {
           plats: true,
         }

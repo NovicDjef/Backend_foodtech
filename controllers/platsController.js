@@ -253,6 +253,78 @@ export default  {
       handleServerError(res, error);
     }
   },
+// Récupérer les plats les plus commandés
+async getMostPopularPlats (req, res) {
+  try {
+    const platsPopulaires = await prisma.plats.findMany({
+      include: {
+        _count: {
+          select: {
+            commandes: true
+          }
+        },
+        categorie: true,
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            image: true
+          }
+        }
+      },
+      orderBy: {
+        commandes: {
+          _count: 'desc'
+        }
+      },
+      take: 10, // Limiter à 10 plats les plus populaires
+      where: {
+        commandes: {
+          some: {} // S'assurer que le plat a au moins une commande
+        }
+      }
+    });
+
+    res.json(platsPopulaires);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la récupération des plats populaires' });
+  }
+},
+
+// Plats populaires par restaurant
+async getMostPopularPlatsByRestaurant (req, res) {
+  const { restaurantId } = req.params;
+  
+  try {
+    const platsPopulaires = await prisma.plats.findMany({
+      where: {
+        categorie: {
+          restaurantId: parseInt(restaurantId)
+        },
+        commandes: {
+          some: {}
+        }
+      },
+      include: {
+        _count: {
+          select: { commandes: true }
+        },
+        categorie: true
+      },
+      orderBy: {
+        commandes: {
+          _count: 'desc'
+        }
+      },
+      take: 5
+    });
+
+    res.json(platsPopulaires);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la récupération' });
+  }
+},
+
 };
 
 function handleServerError(res, error) {
