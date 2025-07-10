@@ -3,10 +3,11 @@ import heuresOuvertureController from '../controllers/heureOuvertureController.j
 
 const router = express.Router();
 
-router.get('/heures-ouvertures', heuresOuvertureController.getAllHeuresOuverture);
-router.get('/heures-ouverture/:id', heuresOuvertureController.getHeuresOuvertureByRestaurant);
-router.post('/heures-ouverture', heuresOuvertureController.addHeuresOuverture);
-router.patch('/heures-ouverture/:id', heuresOuvertureController.updateHeuresOuverture);
-router.delete('/heures-ouverture/:id', heuresOuvertureController.deleteHeuresOuverture);
+router.get('/heures', heuresOuvertureController.getAllHeuresOuverture);
+router.get('/restaurants/:id/heures', heuresOuvertureController.getHeuresOuvertureByRestaurant);
+router.post('/restaurants/:id/heures', heuresOuvertureController.addHeuresOuverture);
+router.post('/api/restaurants/:id/heures/bulk', heuresOuvertureController.addHeuresOuvertureBulk);
+router.put('/heures/:id', heuresOuvertureController.updateHeuresOuverture);
+router.delete('/heures/:id', heuresOuvertureController.deleteHeuresOuverture);
 
 export default router;

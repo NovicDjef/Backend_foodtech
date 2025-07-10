@@ -19,39 +19,66 @@ export default {
   },
 
   async getHeuresOuvertureByRestaurant(req, res) {
-    const restaurantId = parseInt(req.params.restaurantId);
-
     try {
-      const heuresOuverture = await prisma.heuresOuverture.findMany({
-        where: { restaurantId },
-      });
-
-      if (heuresOuverture.length > 0) {
-        return res.status(200).json(heuresOuverture);
-      } else {
-        return res.status(404).json({ message: 'No opening hours found for this restaurant' });
+    const { id } = req.params;
+    
+    const horaires = await prisma.heuresOuverture.findMany({
+      where: { restaurantId: parseInt(id) },
+      orderBy: {
+        // Ordonner par jour de la semaine
+        jour: 'asc'
       }
-    } catch (error) {
-      return handleServerError(res, error);
-    }
-  },
+    });
+
+    res.json(horaires);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la récupération des horaires' });
+  }
+},
 
   async addHeuresOuverture(req, res) {
-    const { jour, heures, restaurantId } = req.body;
-
     try {
-      const createdHeuresOuverture = await prisma.heuresOuverture.create({
-        data: { jour, heures, restaurantId },
-      });
+    const { id } = req.params;
+    const { jour, heures } = req.body;
 
-      return res.status(200).json({
-        message: 'Opening hours created successfully',
-        result: createdHeuresOuverture,
-      });
-    } catch (error) {
-      return handleServerError(res, error);
-    }
-  },
+    const heureOuverture = await prisma.heuresOuverture.create({
+      data: {
+        jour,
+        heures,
+        restaurantId: parseInt(id)
+      }
+    });
+
+    res.status(201).json(heureOuverture);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la création des horaires' });
+  }
+},
+
+  // POST /api/restaurants/:id/heures/bulk
+async addHeuresOuvertureBulk (req, res) {
+  try {
+    const { id } = req.params;
+    const { horaires } = req.body; 
+
+    await prisma.heuresOuverture.deleteMany({
+      where: { restaurantId: parseInt(id) }
+    });
+
+    // Créer les nouveaux horaires
+    const nouveauxHoraires = await prisma.heuresOuverture.createMany({
+      data: horaires.map(h => ({
+        jour: h.jour,
+        heures: h.heures,
+        restaurantId: parseInt(id)
+      }))
+    });
+
+    res.status(201).json(nouveauxHoraires);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la création des horaires' });
+  }
+},
 
   async deleteHeuresOuverture(req, res) {
     const id = parseInt(req.params.id);
@@ -69,23 +96,20 @@ export default {
   },
 
   async updateHeuresOuverture(req, res) {
-    const id = parseInt(req.params.id);
+  try {
+    const { id } = req.params;
     const { jour, heures } = req.body;
 
-    try {
-      const updatedHeuresOuverture = await prisma.heuresOuverture.update({
-        where: { id },
-        data: { jour, heures },
-      });
+    const heureOuverture = await prisma.heuresOuverture.update({
+      where: { id: parseInt(id) },
+      data: { jour, heures }
+    });
 
-      return res.status(201).json({
-        message: 'Opening hours updated successfully',
-        result: updatedHeuresOuverture,
-      });
-    } catch (error) {
-      return handleServerError(res, error);
-    }
-  },
+    res.json(heureOuverture);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la mise à jour' });
+  }
+},
 };
 
 function handleServerError(res, error) {
