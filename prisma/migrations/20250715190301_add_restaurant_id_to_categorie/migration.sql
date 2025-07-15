@@ -1,11 +1,14 @@
 -- CreateEnum
-CREATE TYPE "CommandeStatus" AS ENUM ('EN_ATTENTE', 'VALIDER', 'EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE');
+CREATE TYPE "CommandeStatus" AS ENUM ('EN_ATTENTE', 'VALIDER', 'ASSIGNEE', 'EN_COURS', 'LIVREE', 'ANNULEE');
 
 -- CreateEnum
-CREATE TYPE "ColisStatus" AS ENUM ('EN_ATTENTE', 'VALIDER', 'EN_COURS', 'PAYEE', 'LIVREE', 'ANNULEE');
+CREATE TYPE "ColisStatus" AS ENUM ('EN_ATTENTE', 'VALIDER', 'ASSIGNEE', 'EN_COURS', 'LIVREE', 'ANNULEE');
 
 -- CreateEnum
-CREATE TYPE "LivraisonType" AS ENUM ('COMMANDE', 'COLIS');
+CREATE TYPE "LivraisonStatus" AS ENUM ('ASSIGNEE', 'EN_ROUTE', 'LIVREE', 'ANNULEE');
+
+-- CreateEnum
+CREATE TYPE "TypeVehicule" AS ENUM ('MOTO', 'VELO', 'VOITURE', 'SCOOTER');
 
 -- CreateEnum
 CREATE TYPE "Statut" AS ENUM ('LIVREE', 'ANNULEE', 'NON_LIVRE');
@@ -57,6 +60,10 @@ CREATE TABLE "User" (
     "image" TEXT,
     "password" TEXT NOT NULL,
     "avatar" TEXT,
+    "socialId" TEXT,
+    "provider" TEXT,
+    "isEmailVerified" BOOLEAN NOT NULL DEFAULT false,
+    "pushToken" TEXT,
     "geolocalisationId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -121,7 +128,6 @@ CREATE TABLE "Ville" (
 CREATE TABLE "Menu" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "restaurantId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -134,7 +140,7 @@ CREATE TABLE "Categorie" (
     "name" TEXT NOT NULL,
     "image" TEXT NOT NULL,
     "description" TEXT,
-    "menuId" INTEGER,
+    "restaurantId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -204,9 +210,9 @@ CREATE TABLE "Commande" (
     "status" "CommandeStatus" NOT NULL DEFAULT 'EN_ATTENTE',
     "userId" INTEGER,
     "platsId" INTEGER,
-    "livraisonId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "livreurId" INTEGER,
 
     CONSTRAINT "Commande_pkey" PRIMARY KEY ("id")
 );
@@ -225,9 +231,9 @@ CREATE TABLE "Colis" (
     "adresseArrivee" TEXT NOT NULL,
     "status" "ColisStatus" NOT NULL DEFAULT 'EN_ATTENTE',
     "userId" INTEGER NOT NULL,
-    "livraisonId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "livreurId" INTEGER,
 
     CONSTRAINT "Colis_pkey" PRIMARY KEY ("id")
 );
@@ -249,15 +255,50 @@ CREATE TABLE "Article" (
 -- CreateTable
 CREATE TABLE "Livraison" (
     "id" SERIAL NOT NULL,
-    "type" "LivraisonType" NOT NULL,
-    "statut" "Statut" NOT NULL DEFAULT 'NON_LIVRE',
-    "adresseDepart" TEXT NOT NULL,
-    "adresseArrivee" TEXT NOT NULL,
-    "dateLivraison" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "serviceLivraisonId" INTEGER,
+    "status" "LivraisonStatus" NOT NULL DEFAULT 'ASSIGNEE',
+    "heureLivraison" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "livreurId" INTEGER NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "commandeId" INTEGER,
+    "colisId" INTEGER,
 
     CONSTRAINT "Livraison_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Livreur" (
+    "id" SERIAL NOT NULL,
+    "username" TEXT NOT NULL,
+    "prenom" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "telephone" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "image" TEXT,
+    "disponible" BOOLEAN NOT NULL DEFAULT true,
+    "note" DOUBLE PRECISION DEFAULT 5.0,
+    "totalLivraisons" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "positionActuelle" JSONB,
+    "pushToken" TEXT,
+    "deviceId" TEXT,
+    "typeVehicule" "TypeVehicule" NOT NULL DEFAULT 'MOTO',
+    "plaqueVehicule" TEXT,
+
+    CONSTRAINT "Livreur_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "HistoriquePosition" (
+    "id" SERIAL NOT NULL,
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
+    "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "livraisonId" INTEGER NOT NULL,
+    "livreurId" INTEGER NOT NULL,
+
+    CONSTRAINT "HistoriquePosition_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -340,6 +381,20 @@ CREATE TABLE "Historique" (
 );
 
 -- CreateTable
+CREATE TABLE "NotificationHistory" (
+    "id" SERIAL NOT NULL,
+    "titre" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "lu" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" INTEGER,
+    "livreurId" INTEGER,
+
+    CONSTRAINT "NotificationHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Notifications" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -395,37 +450,57 @@ CREATE TABLE "PrixLivraisonCommande" (
 -- CreateTable
 CREATE TABLE "_PlatsToComplement" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_PlatsToComplement_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateTable
 CREATE TABLE "_MenusrapideToNote" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_MenusrapideToNote_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateTable
 CREATE TABLE "_CommandeToMenusrapide" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_CommandeToMenusrapide_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateTable
 CREATE TABLE "_ArticleToMenusrapide" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_ArticleToMenusrapide_AB_pkey" PRIMARY KEY ("A","B")
+);
+
+-- CreateTable
+CREATE TABLE "_LivraisonToServiceLivraison" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_LivraisonToServiceLivraison_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateTable
 CREATE TABLE "_FavoritePlatsToPlats" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_FavoritePlatsToPlats_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateTable
 CREATE TABLE "_FavoritePlatsToMenusrapide" (
     "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_FavoritePlatsToMenusrapide_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateIndex
@@ -438,13 +513,19 @@ CREATE UNIQUE INDEX "Admin_phone_key" ON "Admin"("phone");
 CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 
 -- CreateIndex
+CREATE INDEX "User_socialId_provider_idx" ON "User"("socialId", "provider");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "OTP_userId_key" ON "OTP"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Commande_livraisonId_key" ON "Commande"("livraisonId");
+CREATE UNIQUE INDEX "CommandeComplement_commandeId_complementId_key" ON "CommandeComplement"("commandeId", "complementId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Colis_livraisonId_key" ON "Colis"("livraisonId");
+CREATE UNIQUE INDEX "Livreur_email_key" ON "Livreur"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Livreur_telephone_key" ON "Livreur"("telephone");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Payement_commandeId_key" ON "Payement"("commandeId");
@@ -453,37 +534,22 @@ CREATE UNIQUE INDEX "Payement_commandeId_key" ON "Payement"("commandeId");
 CREATE UNIQUE INDEX "Geolocalisation_adminId_key" ON "Geolocalisation"("adminId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_PlatsToComplement_AB_unique" ON "_PlatsToComplement"("A", "B");
-
--- CreateIndex
 CREATE INDEX "_PlatsToComplement_B_index" ON "_PlatsToComplement"("B");
-
--- CreateIndex
-CREATE UNIQUE INDEX "_MenusrapideToNote_AB_unique" ON "_MenusrapideToNote"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_MenusrapideToNote_B_index" ON "_MenusrapideToNote"("B");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_CommandeToMenusrapide_AB_unique" ON "_CommandeToMenusrapide"("A", "B");
-
--- CreateIndex
 CREATE INDEX "_CommandeToMenusrapide_B_index" ON "_CommandeToMenusrapide"("B");
-
--- CreateIndex
-CREATE UNIQUE INDEX "_ArticleToMenusrapide_AB_unique" ON "_ArticleToMenusrapide"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_ArticleToMenusrapide_B_index" ON "_ArticleToMenusrapide"("B");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_FavoritePlatsToPlats_AB_unique" ON "_FavoritePlatsToPlats"("A", "B");
+CREATE INDEX "_LivraisonToServiceLivraison_B_index" ON "_LivraisonToServiceLivraison"("B");
 
 -- CreateIndex
 CREATE INDEX "_FavoritePlatsToPlats_B_index" ON "_FavoritePlatsToPlats"("B");
-
--- CreateIndex
-CREATE UNIQUE INDEX "_FavoritePlatsToMenusrapide_AB_unique" ON "_FavoritePlatsToMenusrapide"("A", "B");
 
 -- CreateIndex
 CREATE INDEX "_FavoritePlatsToMenusrapide_B_index" ON "_FavoritePlatsToMenusrapide"("B");
@@ -510,10 +576,7 @@ ALTER TABLE "Restaurant" ADD CONSTRAINT "Restaurant_villeId_fkey" FOREIGN KEY ("
 ALTER TABLE "HeuresOuverture" ADD CONSTRAINT "HeuresOuverture_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Menu" ADD CONSTRAINT "Menu_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Categorie" ADD CONSTRAINT "Categorie_menuId_fkey" FOREIGN KEY ("menuId") REFERENCES "Menu"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Categorie" ADD CONSTRAINT "Categorie_restaurantId_fkey" FOREIGN KEY ("restaurantId") REFERENCES "Restaurant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CommandeComplement" ADD CONSTRAINT "CommandeComplement_commandeId_fkey" FOREIGN KEY ("commandeId") REFERENCES "Commande"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -531,13 +594,13 @@ ALTER TABLE "Commande" ADD CONSTRAINT "Commande_userId_fkey" FOREIGN KEY ("userI
 ALTER TABLE "Commande" ADD CONSTRAINT "Commande_platsId_fkey" FOREIGN KEY ("platsId") REFERENCES "Plats"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Commande" ADD CONSTRAINT "Commande_livraisonId_fkey" FOREIGN KEY ("livraisonId") REFERENCES "Livraison"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Commande" ADD CONSTRAINT "Commande_livreurId_fkey" FOREIGN KEY ("livreurId") REFERENCES "Livreur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Colis" ADD CONSTRAINT "Colis_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Colis" ADD CONSTRAINT "Colis_livraisonId_fkey" FOREIGN KEY ("livraisonId") REFERENCES "Livraison"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Colis" ADD CONSTRAINT "Colis_livreurId_fkey" FOREIGN KEY ("livreurId") REFERENCES "Livreur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Article" ADD CONSTRAINT "Article_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -549,7 +612,22 @@ ALTER TABLE "Article" ADD CONSTRAINT "Article_restaurantId_fkey" FOREIGN KEY ("r
 ALTER TABLE "Article" ADD CONSTRAINT "Article_platsId_fkey" FOREIGN KEY ("platsId") REFERENCES "Plats"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Livraison" ADD CONSTRAINT "Livraison_serviceLivraisonId_fkey" FOREIGN KEY ("serviceLivraisonId") REFERENCES "ServiceLivraison"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Livraison" ADD CONSTRAINT "Livraison_livreurId_fkey" FOREIGN KEY ("livreurId") REFERENCES "Livreur"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Livraison" ADD CONSTRAINT "Livraison_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Livraison" ADD CONSTRAINT "Livraison_commandeId_fkey" FOREIGN KEY ("commandeId") REFERENCES "Commande"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Livraison" ADD CONSTRAINT "Livraison_colisId_fkey" FOREIGN KEY ("colisId") REFERENCES "Colis"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HistoriquePosition" ADD CONSTRAINT "HistoriquePosition_livraisonId_fkey" FOREIGN KEY ("livraisonId") REFERENCES "Livraison"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HistoriquePosition" ADD CONSTRAINT "HistoriquePosition_livreurId_fkey" FOREIGN KEY ("livreurId") REFERENCES "Livreur"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Note" ADD CONSTRAINT "Note_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -574,6 +652,12 @@ ALTER TABLE "Geolocalisation" ADD CONSTRAINT "Geolocalisation_adminId_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "Historique" ADD CONSTRAINT "Historique_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NotificationHistory" ADD CONSTRAINT "NotificationHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NotificationHistory" ADD CONSTRAINT "NotificationHistory_livreurId_fkey" FOREIGN KEY ("livreurId") REFERENCES "Livreur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FavoritePlats" ADD CONSTRAINT "FavoritePlats_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -601,6 +685,12 @@ ALTER TABLE "_ArticleToMenusrapide" ADD CONSTRAINT "_ArticleToMenusrapide_A_fkey
 
 -- AddForeignKey
 ALTER TABLE "_ArticleToMenusrapide" ADD CONSTRAINT "_ArticleToMenusrapide_B_fkey" FOREIGN KEY ("B") REFERENCES "Menusrapide"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_LivraisonToServiceLivraison" ADD CONSTRAINT "_LivraisonToServiceLivraison_A_fkey" FOREIGN KEY ("A") REFERENCES "Livraison"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_LivraisonToServiceLivraison" ADD CONSTRAINT "_LivraisonToServiceLivraison_B_fkey" FOREIGN KEY ("B") REFERENCES "ServiceLivraison"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_FavoritePlatsToPlats" ADD CONSTRAINT "_FavoritePlatsToPlats_A_fkey" FOREIGN KEY ("A") REFERENCES "FavoritePlats"("id") ON DELETE CASCADE ON UPDATE CASCADE;
