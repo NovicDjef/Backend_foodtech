@@ -3,8 +3,6 @@ name: Deploy API to VPS
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 jobs:
   deploy:
@@ -12,90 +10,117 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to VPS
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USERNAME }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: ${{ secrets.VPS_PORT || 22 }}
-        script: |
-          set -x
-          echo "🚀 Starting deployment..."
-          echo "Host: ${{ secrets.VPS_HOST }}"
-          echo "User: ${{ secrets.VPS_USERNAME }}"
-          echo "Repo: ${{ github.repository }}"
-          echo "Branch: ${{ github.ref }}"
-          
-          # Variables
-          APP_DIR="/var/www/back_foodtech"
-          BACKUP_DIR="/var/www/backups"
-          APP_NAME="back-foodtech"
-          
-          # Create directories if they don't exist
-          mkdir -p $APP_DIR
-          mkdir -p $BACKUP_DIR
-          
-          # Clean existing directory if git clone will fail
-          if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR)" ]; then
-            echo "📦 Creating backup..."
-            cp -r $APP_DIR $BACKUP_DIR/api-backup-$(date +%Y%m%d-%H%M%S) || echo "Backup failed"
-            rm -rf $APP_DIR/*
-            rm -rf $APP_DIR/.[^.]*
-          fi
-          
-          # Clone or pull latest code
-          echo "📥 Cloning repository..."
-          git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git $APP_DIR
-          cd $APP_DIR
-          echo "📂 Listing files in $APP_DIR after clone:"
-          ls -al
-          
-          # Install dependencies
-          echo "📦 Installing dependencies..."
-          npm install 
-          
-          # ✅ Generate Prisma Client
-          echo "⚙️ Generating Prisma Client..."
-          npx prisma generate
-          
-          # Create .env file if it doesn't exist
-          if [ ! -f ".env" ]; then
-            echo "⚙️ Creating .env file..."
-            touch .env
-            echo "# Add your environment variables here" > .env
-            echo "NODE_ENV=production" >> .env
-            echo "PORT=3001" >> .env
-          fi
-          
-          # Start/Restart with PM2
-          echo "🔄 Managing PM2 process..."
-          
-          # Install PM2 if not installed
-          if ! command -v pm2 &> /dev/null; then
-            echo "Installing PM2..."
-            npm install -g pm2
-          fi
-          
-          # Stop existing process if running
-          pm2 stop $APP_NAME || echo "Process not running"
-          pm2 delete $APP_NAME || echo "Process not found"
-          
-          # Start new process
-          pm2 start server.js --name $APP_NAME
-          pm2 save
-          
-          # Restart process if needed
-          pm2 restart $APP_NAME || echo "Process not found" 
-          # Setup PM2 startup if first time
-          pm2 startup || echo "PM2 startup already configured"
-          
-          echo "✅ Deployment completed successfully!"
-          echo "🌐 API should be available at: https://api.novic.dev"
-          
-          # Clean old backups (keep only last 5)
-          cd $BACKUP_DIR
-          ls -t | tail -n +6 | xargs -r rm -rf
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e  # Arrêter si une commande échoue
+            echo "🚀 Starting deployment..."
+            
+            # Variables CORRIGÉES
+            APP_DIR="/var/www/Backend_foodtech"
+            BACKUP_DIR="/var/www/backups"
+            APP_NAME="Backend_foodtech"
+            REPO_URL="https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git"
+            
+            echo "📁 App directory: $APP_DIR"
+            echo "📦 App name: $APP_NAME"
+            
+            # Créer les répertoires s'ils n'existent pas
+            sudo mkdir -p $APP_DIR
+            sudo mkdir -p $BACKUP_DIR
+            
+            # Backup de l'ancienne version si elle existe
+            if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR 2>/dev/null)" ]; then
+              echo "📦 Creating backup..."
+              sudo cp -r $APP_DIR $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S)
+            fi
+            
+            # Nettoyer le répertoire de destination
+            echo "🧹 Cleaning destination directory..."
+            sudo rm -rf $APP_DIR/*
+            sudo rm -rf $APP_DIR/.[^.]*
+            
+            # Cloner le repository
+            echo "📥 Cloning repository..."
+            sudo git clone $REPO_URL $APP_DIR
+            
+            # Changer vers le répertoire de l'app
+            cd $APP_DIR
+            
+            echo "📂 Files after clone:"
+            ls -la
+            
+            # Installer les dépendances
+            echo "📦 Installing dependencies..."
+            sudo npm install --production
+            
+            # Générer Prisma Client
+            echo "⚙️ Generating Prisma Client..."
+            sudo npx prisma generate
+            
+            # Créer/mettre à jour le fichier .env
+            echo "🔧 Setting up environment..."
+            if [ ! -f ".env" ]; then
+              sudo tee .env > /dev/null <<EOF
+            NODE_ENV=production
+            PORT=3001
+            # Ajoutez vos autres variables d'environnement ici
+            DATABASE_URL="your-database-url-here"
+            EOF
+            fi
+            
+            # Gérer PM2
+            echo "🔄 Managing PM2 process..."
+            
+            # Installer PM2 globalement si pas installé
+            if ! command -v pm2 &> /dev/null; then
+              echo "Installing PM2..."
+              sudo npm install -g pm2
+            fi
+            
+            # Arrêter le processus existant
+            sudo pm2 stop $APP_NAME 2>/dev/null || echo "Process not running"
+            sudo pm2 delete $APP_NAME 2>/dev/null || echo "Process not found"
+            
+            # Identifier le fichier principal
+            MAIN_FILE=""
+            if [ -f "server.js" ]; then
+              MAIN_FILE="server.js"
+            elif [ -f "index.js" ]; then
+              MAIN_FILE="index.js"
+            elif [ -f "app.js" ]; then
+              MAIN_FILE="app.js"
+            else
+              echo "❌ No main file found (server.js, index.js, or app.js)"
+              exit 1
+            fi
+            
+            echo "🚀 Starting application with: $MAIN_FILE"
+            
+            # Démarrer l'application
+            sudo pm2 start $MAIN_FILE --name $APP_NAME
+            sudo pm2 save
+            
+            # Configuration du démarrage automatique
+            sudo pm2 startup systemd -u root --hp /root 2>/dev/null || echo "PM2 startup already configured"
+            
+            echo "✅ Deployment completed!"
+            echo "📊 PM2 Status:"
+            sudo pm2 list
+            
+            echo "🌐 Testing local connection..."
+            sleep 2
+            curl -f http://localhost:3001 && echo "✅ Local test passed" || echo "❌ Local test failed"
+            
+            # Nettoyage des anciens backups (garder les 3 derniers)
+            echo "🧹 Cleaning old backups..."
+            cd $BACKUP_DIR
+            sudo ls -t | tail -n +4 | xargs -r sudo rm -rf
