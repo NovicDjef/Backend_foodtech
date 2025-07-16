@@ -81,6 +81,8 @@ jobs:
           pm2 start server.js --name $APP_NAME
           pm2 save
           
+          # Restart process if needed
+          pm2 restart $APP_NAME || echo "Process not found" 
           # Setup PM2 startup if first time
           pm2 startup || echo "PM2 startup already configured"
           
