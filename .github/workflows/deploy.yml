@@ -23,7 +23,12 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: ${{ secrets.VPS_PORT || 22 }}
         script: |
+          set -x
           echo "🚀 Starting deployment..."
+          echo "Host: ${{ secrets.VPS_HOST }}"
+          echo "User: ${{ secrets.VPS_USERNAME }}"
+          echo "Repo: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref }}"
           
           # Variables
           APP_DIR="/var/www/back_foodtech"
@@ -46,6 +51,8 @@ jobs:
           echo "📥 Cloning repository..."
           git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git $APP_DIR
           cd $APP_DIR
+          echo "📂 Listing files in $APP_DIR after clone:"
+          ls -al
           
           # Install dependencies
           echo "📦 Installing dependencies..."
