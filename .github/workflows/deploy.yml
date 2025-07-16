@@ -28,7 +28,7 @@ jobs:
           # Variables
           APP_DIR="/var/www/Backend_foodtech"
           BACKUP_DIR="/var/www/backups"
-          APP_NAME="back-foodtech"
+          APP_NAME="Backend_foodtech"
           
           # Create directories if they don't exist
           mkdir -p $APP_DIR
@@ -47,6 +47,11 @@ jobs:
           git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git $APP_DIR
           cd $APP_DIR
           
+          # Check Node.js version
+          echo "🔍 Checking Node.js version..."
+          node --version || echo "Node.js not found!"
+          npm --version || echo "NPM not found!"
+          
           # Install dependencies
           echo "📦 Installing dependencies..."
           npm install 
@@ -55,14 +60,19 @@ jobs:
           echo "⚙️ Generating Prisma Client..."
           npx prisma generate
           
-          # Create .env file if it doesn't exist
-          if [ ! -f ".env" ]; then
-            echo "⚙️ Creating .env file..."
-            touch .env
-            echo "# Add your environment variables here" > .env
-            echo "NODE_ENV=production" >> .env
-            echo "PORT=3001" >> .env
-          fi
+          # ✅ Run database migrations
+          echo "🗄️ Running database migrations..."
+          npx prisma migrate deploy || echo "Migration failed - continuing anyway"
+          
+          # Create .env file with required variables
+          echo "⚙️ Creating .env file..."
+          cat > .env << EOF
+          NODE_ENV=production
+          PORT=3001
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          EXPO_ACCESS_TOKEN=${{ secrets.EXPO_ACCESS_TOKEN }}
+          JWT_SECRET=${{ secrets.JWT_SECRET || 'your-default-secret-key' }}
+          EOF
           
           # Start/Restart with PM2
           echo "🔄 Managing PM2 process..."
@@ -78,8 +88,14 @@ jobs:
           pm2 delete $APP_NAME || echo "Process not found"
           
           # Start new process
-          pm2 start server.js --name $APP_NAME
+          pm2 start server.js --name $APP_NAME --log-date-format="YYYY-MM-DD HH:mm:ss"
           pm2 save
+          
+          # Display PM2 status and logs
+          echo "📊 PM2 Status:"
+          pm2 status
+          echo "📋 Recent logs:"
+          pm2 logs $APP_NAME --lines 10 --nostream || echo "No logs available yet"
           
           # Setup PM2 startup if first time
           pm2 startup || echo "PM2 startup already configured"
