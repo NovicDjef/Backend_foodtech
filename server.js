@@ -107,7 +107,7 @@ server.use("/", complementsRoute)
 server.use('/images', express.static('images'))
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0'; // Écouter sur toutes les interfaces réseau
 server.listen(PORT, HOST, () => {
 console.log(`Server is running on http://${HOST}:${PORT}`);
