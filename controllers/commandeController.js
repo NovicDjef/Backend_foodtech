@@ -200,14 +200,10 @@ async createCommande(req, res) {
         plat: {
               include: {
                 categorie: {
-                  include: {
-                    menu: {
                       include: {
                         restaurant: {
                           select: { name: true, adresse: true }
                         }
-                      }
-                    }
                   }
                 }
               }

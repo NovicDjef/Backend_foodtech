@@ -62,7 +62,7 @@ jobs:
           
           # ✅ Run database migrations
           echo "🗄️ Running database migrations..."
-          npx prisma migrate deploy || echo "Migration failed - continuing anyway"
+          npx prisma migrate deploy
           
           # Create .env file with required variables
           echo "⚙️ Creating .env file..."
