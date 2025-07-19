@@ -10,6 +10,8 @@ const expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN
 });
 
+
+
 const notifyAllLivreurs = async (commande) => {
   try {
     console.log('📢 Notification des livreurs pour commande:', commande.id);
@@ -358,7 +360,6 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
         //payement: true,
         // livraison: true,
         // complements: true,
-        // Menusrapide: true,
       },
       orderBy: {
         createdAt: 'desc'
@@ -743,7 +744,7 @@ async updateCommandeStatus(req, res) {
           status, 
           livreurInfo,
           { 
-            restaurantName: restaurantName || updatedCommande.plat?.categorie?.menu?.restaurant?.name,
+            restaurantName: restaurantName || updatedCommande.plat?.categorie?.restaurant?.name,
             raison: raison || 'Non spécifiée'
           }
         );
