@@ -213,8 +213,6 @@ model Commande {
   updatedAt      DateTime       @updatedAt
   complements    CommandeComplement[]
   Menusrapide    Menusrapide[]
-  
-
   livreur       Livreur?        @relation(fields: [livreurId], references: [id])
   livreurId     Int?           
 }

@@ -200,16 +200,16 @@ async createCommande(req, res) {
         plat: {
               include: {
                 categorie: {
-                      include: {
+                  include: {
                         restaurant: {
                           select: { name: true, adresse: true }
                         }
+                      }
+                    }
                   }
                 }
               }
-            }
-      }
-    });
+          });
 
  
     if (complements && complements.length > 0) {
@@ -265,8 +265,6 @@ async createCommande(req, res) {
          plat: {
               include: {
                 categorie: {
-                  include: {
-                    menu: {
                       include: {
                         restaurant: {
                           select: { name: true, adresse: true }
@@ -275,8 +273,6 @@ async createCommande(req, res) {
                     }
                   }
                 }
-              }
-            }
       },
       orderBy: {
         createdAt: 'desc' // Plus récentes en premier
@@ -411,8 +407,6 @@ async accepterCommande (req, res) {
         plat: {
               include: {
                 categorie: {
-                  include: {
-                    menu: {
                       include: {
                         restaurant: {
                           select: {
@@ -427,8 +421,6 @@ async accepterCommande (req, res) {
                     }
                   }
                 }
-              }
-            }
       }
     });
 
@@ -663,8 +655,6 @@ async updateCommandeStatus(req, res) {
         plat: {
           include: {
             categorie: {
-              include: {
-                menu: {
                   include: {
                     restaurant: {
                       select: { name: true, adresse: true }
@@ -674,8 +664,6 @@ async updateCommandeStatus(req, res) {
               }
             }
           }
-        }
-      }
     });
 
     if (!currentCommande) {
@@ -713,8 +701,6 @@ async updateCommandeStatus(req, res) {
         plat: {
           include: {
             categorie: {
-              include: {
-                menu: {
                   include: {
                     restaurant: {
                       select: { name: true, adresse: true }
@@ -724,8 +710,6 @@ async updateCommandeStatus(req, res) {
               }
             }
           }
-        }
-      }
     });
 
     // 🚀 NOUVEAU: Notifications automatiques au client
