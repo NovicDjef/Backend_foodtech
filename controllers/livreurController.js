@@ -124,7 +124,7 @@ async getStatsLivreur (req, res) {
           livreurId: livreurId,
           status: 'LIVREE',
           heureLivraison: {
-            gte: today,
+            gte: gainsJour._sum.heureLivraison,
             lt: tomorrow
           }
         }

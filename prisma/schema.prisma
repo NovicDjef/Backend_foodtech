@@ -89,6 +89,7 @@ model Restaurant {
   latitude        Float
   longitude       Float
   categories      Categorie[]
+  complements     Complement[]
   articles        Article[]
   reservations    Reservation[]
   heuresOuverture HeuresOuverture[]
@@ -140,6 +141,8 @@ model Complement {
   name        String
   price       Float
   plats       Plats[]  @relation("PlatsToComplement")
+  restaurant  Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId Int  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   commandes   CommandeComplement[]

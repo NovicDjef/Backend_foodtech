@@ -5,9 +5,16 @@ const prisma = new PrismaClient();
 export default {
   async createComplement(req, res) {
     try {
-      const { name, price } = req.body;
+      const { name, price, restaurantId } = req.body;
       const complement = await prisma.complement.create({
-        data: { name, price }
+        data: { 
+          name, 
+          price, 
+          restaurant: restaurantId ? { connect: { id: parseInt(restaurantId) } } : undefined,
+        },
+        include: {
+          restaurant: true,
+        },
       });
       res.status(201).json(complement);
     } catch (error) {
@@ -18,10 +25,17 @@ export default {
   async updateComplement(req, res) {
     try {
       const { id } = req.params;
-      const { name, price } = req.body;
+      const { name, price, restaurantId } = req.body;
       const complement = await prisma.complement.update({
         where: { id: parseInt(id) },
-        data: { name, price }
+        data: { 
+          name,
+          price,
+          restaurant: restaurantId ? { connect: { id: parseInt(restaurantId) } } : undefined,
+        },
+        include: {
+          restaurant: true,
+        },
       });
       res.status(200).json(complement);
     } catch (error) {
