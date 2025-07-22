@@ -183,7 +183,6 @@ async createCommande(req, res) {
   }
 
   try {
-    // Créer la commande principale
     const newCommande = await prisma.commande.create({
       data: {
         quantity: parseInt(quantity),
@@ -254,7 +253,7 @@ async createCommande(req, res) {
     
     const commandes = await prisma.commande.findMany({
       where: {
-        status: 'EN_ATTENTE' // Seulement les commandes en attente
+        status: 'EN_ATTENTE'
       },
       include: {
         user: {
@@ -277,7 +276,7 @@ async createCommande(req, res) {
                 }
       },
       orderBy: {
-        createdAt: 'desc' // Plus récentes en premier
+        createdAt: 'desc'
       }
     });
 
@@ -297,8 +296,6 @@ async createCommande(req, res) {
     });
   }
 },
-
-
 
 async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
   try {
@@ -348,7 +345,6 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
     console.error(`❌ Erreur envoi notification livreur ${livreurId}:`, error);
   }
 },
-
 
   // Obtenir toutes les commandes
   async getAllCommandes(req, res) {
@@ -626,7 +622,7 @@ async accepterCommande (req, res) {
       const commandes = await prisma.commande.findMany({
         where: { userId: parseInt(userId) },
         include: {
-          plats: true,
+          plat: true,
           payement: true,
           livraison: true,
         }

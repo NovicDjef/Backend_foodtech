@@ -41,6 +41,7 @@ console.log("restaurant :", newRestaurant)
           categories: true,
           heuresOuverture: true,
           ville: true,
+          complements: true,
           admin: {
             select: {
               id: true,
@@ -67,6 +68,7 @@ console.log("restaurant :", newRestaurant)
           categories: true,
           heuresOuverture: true,
           ville: true,
+          complements: true,
           admin: {
             select: {
               id: true,

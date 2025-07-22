@@ -1,108 +1,108 @@
-name: Deploy API to VPS
+# name: Deploy API to VPS
 
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+# on:
+#   push:
+#     branches: [ main, master ]
+#   pull_request:
+#     branches: [ main, master ]
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
     
-    - name: Deploy to VPS
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USERNAME }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        port: ${{ secrets.VPS_PORT || 22 }}
-        script: |
-          echo "🚀 Starting deployment..."
+#     - name: Deploy to VPS
+#       uses: appleboy/ssh-action@v1.0.3
+#       with:
+#         host: ${{ secrets.VPS_HOST }}
+#         username: ${{ secrets.VPS_USERNAME }}
+#         key: ${{ secrets.VPS_SSH_KEY }}
+#         port: ${{ secrets.VPS_PORT || 22 }}
+#         script: |
+#           echo "🚀 Starting deployment..."
           
-          # Variables
-          APP_DIR="/var/www/Backend_foodtech"
-          BACKUP_DIR="/var/www/backups"
-          APP_NAME="Backend_foodtech"
+#           # Variables
+#           APP_DIR="/var/www/Backend_foodtech"
+#           BACKUP_DIR="/var/www/backups"
+#           APP_NAME="Backend_foodtech"
           
-          # Create directories if they don't exist
-          mkdir -p $APP_DIR
-          mkdir -p $BACKUP_DIR
+#           # Create directories if they don't exist
+#           mkdir -p $APP_DIR
+#           mkdir -p $BACKUP_DIR
           
-          # Clean existing directory if git clone will fail
-          if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR)" ]; then
-            echo "📦 Creating backup..."
-            cp -r $APP_DIR $BACKUP_DIR/api-backup-$(date +%Y%m%d-%H%M%S) || echo "Backup failed"
-            rm -rf $APP_DIR/*
-            rm -rf $APP_DIR/.[^.]*
-          fi
+#           # Clean existing directory if git clone will fail
+#           if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR)" ]; then
+#             echo "📦 Creating backup..."
+#             cp -r $APP_DIR $BACKUP_DIR/api-backup-$(date +%Y%m%d-%H%M%S) || echo "Backup failed"
+#             rm -rf $APP_DIR/*
+#             rm -rf $APP_DIR/.[^.]*
+#           fi
           
-          # Clone or pull latest code
-          echo "📥 Cloning repository..."
-          git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git $APP_DIR
-          cd $APP_DIR
+#           # Clone or pull latest code
+#           echo "📥 Cloning repository..."
+#           git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git $APP_DIR
+#           cd $APP_DIR
           
-          # Check Node.js version
-          echo "🔍 Checking Node.js version..."
-          node --version || echo "Node.js not found!"
-          npm --version || echo "NPM not found!"
+#           # Check Node.js version
+#           echo "🔍 Checking Node.js version..."
+#           node --version || echo "Node.js not found!"
+#           npm --version || echo "NPM not found!"
           
-          # Install dependencies
-          echo "📦 Installing dependencies..."
-          npm install 
+#           # Install dependencies
+#           echo "📦 Installing dependencies..."
+#           npm install 
           
-          # ✅ Generate Prisma Client
-          echo "⚙️ Generating Prisma Client..."
-          npx prisma generate
+#           # ✅ Generate Prisma Client
+#           echo "⚙️ Generating Prisma Client..."
+#           npx prisma generate
           
-          # ✅ Run database migrations
-          echo "🗄️ Running database migrations..."
-          npx prisma migrate deploy
+#           # ✅ Run database migrations
+#           echo "🗄️ Running database migrations..."
+#           npx prisma migrate deploy
           
-          # Create .env file with required variables
-          echo "⚙️ Creating .env file..."
-          cat > .env << EOF
-          NODE_ENV=production
-          PORT=3001
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          EXPO_ACCESS_TOKEN=${{ secrets.EXPO_ACCESS_TOKEN }}
-          JWT_SECRET=${{ secrets.JWT_SECRET || 'your-default-secret-key' }}
-          EOF
+#           # Create .env file with required variables
+#           echo "⚙️ Creating .env file..."
+#           cat > .env << EOF
+#           NODE_ENV=production
+#           PORT=3001
+#           DATABASE_URL=${{ secrets.DATABASE_URL }}
+#           EXPO_ACCESS_TOKEN=${{ secrets.EXPO_ACCESS_TOKEN }}
+#           JWT_SECRET=${{ secrets.JWT_SECRET || 'your-default-secret-key' }}
+#           EOF
           
-          # Start/Restart with PM2
-          echo "🔄 Managing PM2 process..."
+#           # Start/Restart with PM2
+#           echo "🔄 Managing PM2 process..."
           
-          # Install PM2 if not installed
-          if ! command -v pm2 &> /dev/null; then
-            echo "Installing PM2..."
-            npm install -g pm2
-          fi
+#           # Install PM2 if not installed
+#           if ! command -v pm2 &> /dev/null; then
+#             echo "Installing PM2..."
+#             npm install -g pm2
+#           fi
           
-          # Stop existing process if running
-          pm2 stop $APP_NAME || echo "Process not running"
-          pm2 delete $APP_NAME || echo "Process not found"
+#           # Stop existing process if running
+#           pm2 stop $APP_NAME || echo "Process not running"
+#           pm2 delete $APP_NAME || echo "Process not found"
           
-          # Start new process
-          pm2 start server.js --name $APP_NAME --log-date-format="YYYY-MM-DD HH:mm:ss"
-          pm2 save
+#           # Start new process
+#           pm2 start server.js --name $APP_NAME --log-date-format="YYYY-MM-DD HH:mm:ss"
+#           pm2 save
           
-          # Display PM2 status and logs
-          echo "📊 PM2 Status:"
-          pm2 status
-          echo "📋 Recent logs:"
-          pm2 logs $APP_NAME --lines 10 --nostream || echo "No logs available yet"
+#           # Display PM2 status and logs
+#           echo "📊 PM2 Status:"
+#           pm2 status
+#           echo "📋 Recent logs:"
+#           pm2 logs $APP_NAME --lines 10 --nostream || echo "No logs available yet"
           
-          # Setup PM2 startup if first time
-          pm2 startup || echo "PM2 startup already configured"
+#           # Setup PM2 startup if first time
+#           pm2 startup || echo "PM2 startup already configured"
           
-          echo "✅ Deployment completed successfully!"
-          echo "🌐 API should be available at: https://api.novic.dev"
+#           echo "✅ Deployment completed successfully!"
+#           echo "🌐 API should be available at: https://api.novic.dev"
           
-          # Clean old backups (keep only last 5)
-          cd $BACKUP_DIR
-          ls -t | tail -n +6 | xargs -r rm -rf
+#           # Clean old backups (keep only last 5)
+#           cd $BACKUP_DIR
+#           ls -t | tail -n +6 | xargs -r rm -rf

@@ -763,6 +763,22 @@ async toggleLivreurDisponibilite(req, res) {
   }
 },
 
+  async getLivreurById(req, res) {
+    try {
+      const { id } = req.params;
+      const livreur = await prisma.livreur.findUnique({
+        where: { id: parseInt(id) }
+      });
+      if (!livreur) {
+        return res.status(404).json({ 
+          message: 'Livreur non trouvé' 
+        });
+      }
+      res.status(200).json(livreur);
+    } catch (error) {
+      handleServerError(res, error);
+    }
+  },
 
   // Supprimer un livreur
   async deleteLivreur(req, res) {

@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Routes pour les livreurs
 router.get('/livreurs', livreurController.getAllLivreur);
+router.get('/livreur/:id', livreurController.getLivreurById);
 router.post('/livreur/signup', upload.single('image'), livreurController.signUpLivreur);
 router.post('/livreur/login', livreurController.loginLivreur);
 router.delete('/livreur/:id', livreurController.deleteLivreur);
