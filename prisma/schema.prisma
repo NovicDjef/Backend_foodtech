@@ -20,6 +20,8 @@ model Admin {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   geolocalisation  Geolocalisation?
+
+  GasVendor GasVendor[]
 }
 
 model UserRole {
@@ -56,12 +58,16 @@ model User {
   articles          Article[]
   payments          Payement[]
   colis             Colis[]
-  livraison          Livraison[]
+  livraison         Livraison[]
   otp               OTP?
   geolocalisation   Geolocalisation? @relation(fields: [geolocalisationId], references: [id])
   geolocalisationId Int?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  // ✅ NOUVELLES RELATIONS POUR LE SYSTÈME DE GAZ
+  gasOrders           GasOrder[]           @relation("UserGasOrders")
+  gasVendorReviews    GasVendorReview[]    @relation("UserGasVendorReviews")
+  gasOrderReviews     GasOrderReview[]     @relation("UserGasOrderReviews")
   @@index([socialId, provider])
   NotificationHistory NotificationHistory[]
 }
@@ -107,6 +113,8 @@ model HeuresOuverture {
   heures       String
   restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
   restaurantId Int?
+
+  GasVendor GasVendor[]
 }
 
 model Ville {
@@ -115,6 +123,8 @@ model Ville {
   longitude   Float?
   latitude    Float?
   restaurants Restaurant[]
+
+  GasVendor GasVendor[]
 }
 
 model Menu {
@@ -149,7 +159,6 @@ model Complement {
   Menusrapide Menusrapide[] @relation("PlatsToComplement")
 }
 
-
 model CommandeComplement {
   id            Int @id @default(autoincrement())
   quantity      Int
@@ -162,7 +171,6 @@ model CommandeComplement {
   
   @@unique([commandeId, complementId])
 }
-
 
 model Plats {
   id            Int             @id @default(autoincrement())
@@ -297,8 +305,9 @@ model Livreur {
   HistoriquePosition HistoriquePosition[]
   commande       Commande[]
   Colis         Colis[]
-}
 
+  GasOrder GasOrder[]
+}
 
 model HistoriquePosition {
   id            Int      @id @default(autoincrement())
@@ -313,7 +322,6 @@ model HistoriquePosition {
   livreurId     Int
   livreur       Livreur   @relation(fields: [livreurId], references: [id])
 }
-
 
 model Note {
   id        Int       @id @default(autoincrement())
@@ -445,6 +453,129 @@ model PrixLivraisonCommande {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
+model PrixLivraisonGaz {
+  id            Int     @id @default(autoincrement())
+  montant       Float
+  description   String
+  status        Int     @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ========================================
+// 🔥 NOUVEAUX MODÈLES POUR LE SYSTÈME DE GAZ
+// ========================================
+
+// Modèle pour les vendeurs de gaz
+model GasVendor {
+  id              Int      @id @default(autoincrement())
+  name            String   // Ex: "Gaz Express Akwa"
+  location        String   // Ex: "Akwa", "Bonanjo", "Deido"
+  address         String   // Adresse complète
+  latitude        Float    // Latitude GPS
+  longitude       Float    // Longitude GPS
+  deliveryPrice   Float    // Prix de livraison en FCFA
+  deliveryTime    String   // Ex: "30-45 min"
+  heuresOuverture HeuresOuverture[]
+  availableBrands String[] // Ex: ["CAM_GAZ", "TRADEX", "BOCCOM", "SCTM"]
+  isActive        Boolean  @default(true)
+  description     String?  // Description du vendeur
+  image           String?  // URL de l'image/logo
+  rating          Float?   @default(5.0) // Note moyenne
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  gasOrders       GasOrder[]
+  reviews         GasVendorReview[]
+  admin           Admin?            @relation(fields: [adminId], references: [id])
+  adminId         Int?
+  ville           Ville?            @relation(fields: [villeId], references: [id])
+  villeId         Int?
+  @@map("gas_vendors")
+  @@index([latitude, longitude]) // Index géospatial
+  @@index([location, isActive])  // Index par lieu
+}
+
+// Modèle pour les commandes de gaz
+model GasOrder {
+  id                   Int            @id @default(autoincrement())
+  orderNumber          String         @unique @default(cuid()) // Numéro de commande unique
+  user                 User           @relation("UserGasOrders", fields: [userId], references: [id])
+  userId               Int
+  vendor               GasVendor      @relation(fields: [vendorId], references: [id])
+  vendorId             Int
+  phone                String         // Téléphone du client
+  deliveryAddress      String         // Adresse de livraison complète
+  selectedBrand        GasBrand       // Marque de gaz sélectionnée
+  hasRegulator         RegulatorOption // Avec ou sans détendeur
+  orderType            GasOrderType   // Type de commande (recharge/bouteille)
+  quantity             Int            @default(1) // Quantité commandée
+  basePrice            Float          // Prix unitaire de base
+  subtotal             Float          // Sous-total (basePrice * quantity)
+  deliveryPrice        Float          // Frais de livraison
+  totalPrice           Float          // Prix total final
+  position             String?        // Position GPS du client (optionnel)
+  status               GasOrderStatus @default(GAS_PENDING)
+  paymentStatus        GasPaymentStatus  @default(GAS_PAYMENT_PENDING)
+  paymentMethod        GasPaymentMethod  @default(CASH_ON_DELIVERY)
+  specialInstructions  String?        // Instructions spéciales du client
+  vendorNotes          String?        // Notes du vendeur
+  deliveryNotes        String?        // Notes de livraison
+  estimatedDeliveryTime String?       // Temps estimé
+  actualDeliveryTime    String?       // Temps réel
+  livreur       Livreur?        @relation(fields: [livreurId], references: [id])
+  livreurId     Int?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  confirmedAt          DateTime?      // Date de confirmation
+  preparedAt           DateTime?      // Date de préparation
+  dispatchedAt         DateTime?      // Date d'expédition
+  deliveredAt          DateTime?      // Date de livraison
+  cancelledAt          DateTime?      // Date d'annulation
+  cancellationReason   String?        // Raison si annulée
+  review               GasOrderReview?
+  @@map("gas_orders")
+  @@index([userId, createdAt])       // Index pour historique utilisateur
+  @@index([livreurId, createdAt])    // Index pour historique livreur
+  @@index([vendorId, status])        // Index pour vendeur
+  @@index([status, createdAt])       // Index par statut
+  @@index([orderNumber])             // Index numéro de commande
+}
+
+// Modèle pour les avis sur les vendeurs
+model GasVendorReview {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation("UserGasVendorReviews", fields: [userId], references: [id])
+  userId      Int
+  vendor      GasVendor @relation(fields: [vendorId], references: [id])
+  vendorId    Int
+  rating      Float     // Note de 1 à 5
+  comment     String?   // Commentaire
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@map("gas_vendor_reviews")
+  @@unique([userId, vendorId]) // Un avis par utilisateur par vendeur
+}
+
+// Modèle pour les avis sur les commandes
+model GasOrderReview {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation("UserGasOrderReviews", fields: [userId], references: [id])
+  userId      Int
+  order       GasOrder @relation(fields: [orderId], references: [id])
+  orderId     Int      @unique
+  serviceRating     Float   // Note du service (1-5)
+  qualityRating     Float   // Note de la qualité (1-5)
+  deliveryRating    Float   // Note de la livraison (1-5)
+  overallRating     Float   // Note globale (1-5)
+  comment           String? // Commentaire
+  wouldRecommend    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("gas_order_reviews")
+}
+
+
 enum CommandeStatus {
   EN_ATTENTE
   VALIDER
@@ -453,7 +584,8 @@ enum CommandeStatus {
   LIVREE
   ANNULEE
 }
- enum ColisStatus {
+
+enum ColisStatus {
   EN_ATTENTE
   VALIDER
   ASSIGNEE      
@@ -502,4 +634,70 @@ enum PaymentStatus {
   COMPLETE
   ECHOUE
   REMBOURSE
+}
+
+// ========================================
+// 🔥 NOUVEAUX ENUMS POUR LE SYSTÈME DE GAZ
+// ========================================
+
+// Marques de gaz disponibles au Cameroun
+enum GasBrand {
+  CAM_GAZ     // Cam Gaz
+  TRADEX      // Tradex
+  BOCCOM      // Boccom
+  SCTM        // SCTM
+  TOTAL_GAS   // Total Gas
+  SHELL_GAS   // Shell Gas
+  
+  @@map("gas_brands")
+}
+
+// Options pour le détendeur/régulateur
+enum RegulatorOption {
+  WITH        // Avec saucle (détendeur)
+  WITHOUT     // Sans saucle
+  
+  @@map("regulator_options")
+}
+
+// Types de commande de gaz
+enum GasOrderType {
+  REFILL       // Recharge seulement
+  FULL_BOTTLE  // Bouteille pleine avec gaz
+  
+  @@map("gas_order_types")
+}
+
+// Statuts des commandes de gaz (préfixés pour éviter les conflits)
+enum GasOrderStatus {
+  GAS_PENDING           // En attente
+  GAS_CONFIRMED         // Confirmée par le vendeur
+  GAS_PREPARING         // En préparation
+  GAS_READY             // Prête pour livraison
+  GAS_OUT_FOR_DELIVERY  // En cours de livraison
+  GAS_DELIVERED         // Livrée
+  GAS_CANCELLED         // Annulée
+  GAS_REFUNDED          // Remboursée
+  
+  @@map("gas_order_statuses")
+}
+
+// Statuts de paiement pour le gaz (préfixés pour éviter les conflits)
+enum GasPaymentStatus {
+  GAS_PAYMENT_PENDING    // En attente
+  GAS_PAYMENT_PAID       // Payé
+  GAS_PAYMENT_FAILED     // Échec
+  GAS_PAYMENT_REFUNDED   // Remboursé
+  
+  @@map("gas_payment_statuses")
+}
+
+// Méthodes de paiement pour le gaz
+enum GasPaymentMethod {
+  CASH_ON_DELIVERY  // Paiement à la livraison
+  MOBILE_MONEY      // Mobile Money
+  BANK_TRANSFER     // Virement bancaire
+  CARD              // Carte bancaire
+  
+  @@map("gas_payment_methods")
 }
