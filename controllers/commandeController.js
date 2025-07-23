@@ -584,9 +584,22 @@ async accepterCommande (req, res) {
         where: { id: parseInt(id) },
         include: {
           user: true,
-          plats: true,
+          plat: {
+            include: {
+              categorie: true
+            }
+          },
           payement: true,
           livraison: true,
+          complements: {
+          include: {
+            complement: {
+              include: {
+                restaurant: true
+              }
+            }
+          }
+        }
         }
       });
 
@@ -625,6 +638,7 @@ async accepterCommande (req, res) {
           plat: true,
           payement: true,
           livraison: true,
+          complements: true
         }
       });
 
