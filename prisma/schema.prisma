@@ -514,7 +514,7 @@ model GasOrder {
   deliveryPrice        Float          // Frais de livraison
   totalPrice           Float          // Prix total final
   position             String?        // Position GPS du client (optionnel)
-  status               GasOrderStatus @default(GAS_PENDING)
+  status               GasOrderStatus @default(EN_ATTENTE)
   paymentStatus        GasPaymentStatus  @default(GAS_PAYMENT_PENDING)
   paymentMethod        GasPaymentMethod  @default(CASH_ON_DELIVERY)
   specialInstructions  String?        // Instructions spéciales du client
@@ -670,15 +670,13 @@ enum GasOrderType {
 
 // Statuts des commandes de gaz (préfixés pour éviter les conflits)
 enum GasOrderStatus {
-  GAS_PENDING           // En attente
-  GAS_CONFIRMED         // Confirmée par le vendeur
-  GAS_PREPARING         // En préparation
-  GAS_READY             // Prête pour livraison
-  GAS_OUT_FOR_DELIVERY  // En cours de livraison
-  GAS_DELIVERED         // Livrée
-  GAS_CANCELLED         // Annulée
-  GAS_REFUNDED          // Remboursée
-  
+  EN_ATTENTE
+  VALIDER
+  ASSIGNEE      
+  EN_COURS      
+  LIVREE
+  ANNULEE
+  REMBOURSE
   @@map("gas_order_statuses")
 }
 
