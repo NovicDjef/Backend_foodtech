@@ -434,14 +434,14 @@ export default {
 
       // Calculer les statistiques
       const totalOrders = vendor.gasOrders.length;
-      const completedOrders = vendor.gasOrders.filter(order => order.status === 'GAS_DELIVERED').length;
-      const cancelledOrders = vendor.gasOrders.filter(order => order.status === 'GAS_CANCELLED').length;
+      const completedOrders = vendor.gasOrders.filter(order => order.status === 'LIVREE').length;
+      const cancelledOrders = vendor.gasOrders.filter(order => order.status === 'ANNULEE').length;
       const pendingOrders = vendor.gasOrders.filter(order => 
-        ['GAS_PENDING', 'GAS_CONFIRMED', 'GAS_PREPARING', 'GAS_READY', 'GAS_OUT_FOR_DELIVERY'].includes(order.status)
+        ['EN_ATTENTE', 'VALIDER', 'ASSIGNEE', 'GAS_READY', 'EN_COURS'].includes(order.status)
       ).length;
 
       const totalRevenue = vendor.gasOrders
-        .filter(order => order.status === 'GAS_DELIVERED')
+        .filter(order => order.status === 'LIVREE')
         .reduce((sum, order) => sum + order.totalPrice, 0);
 
       const avgRating = vendor.reviews.length > 0 

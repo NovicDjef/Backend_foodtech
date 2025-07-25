@@ -54,7 +54,7 @@ export default {
           position,
           specialInstructions,
           paymentMethod: paymentMethod || 'CASH_ON_DELIVERY',
-          status: 'GAS_PENDING',
+          status: 'EN_ATTENTE',
           paymentStatus: 'GAS_PAYMENT_PENDING'
         },
         include: {
@@ -70,7 +70,6 @@ export default {
               id: true,
               name: true,
               location: true,
-              phone: true,
               deliveryTime: true
             }
           },
@@ -86,14 +85,14 @@ export default {
       });
 
       // Mettre à jour le nombre total de commandes du vendeur
-      await prisma.gasVendor.update({
-        where: { id: parseInt(vendorId) },
-        data: {
-          totalOrders: {
-            increment: 1
-          }
-        }
-      });
+      // await prisma.gasVendor.update({
+      //   where: { id: parseInt(vendorId) },
+      //   data: {
+      //     totalOrders: {
+      //       increment: 1
+      //     }
+      //   }
+      // });
 
       res.status(201).json({
         message: "Commande de gaz créée avec succès",
@@ -139,7 +138,6 @@ export default {
                 id: true,
                 name: true,
                 location: true,
-                phone: true
               }
             },
             livreur: {
@@ -178,56 +176,65 @@ export default {
   },
 
   // Obtenir une commande par son ID
-  async getGasOrderById(req, res) {
-    try {
-      const { id } = req.params;
-      
-      const order = await prisma.gasOrder.findUnique({
-        where: { id: parseInt(id) },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              phone: true,
-              avatar: true
-            }
-          },
-          vendor: {
-            include: {
-              ville: true,
-              admin: {
-                select: {
-                  id: true,
-                  username: true,
-                  email: true
-                }
+async getGasOrderById(req, res) {
+  try {
+    const id = parseInt(req.params.id);
+
+    if (isNaN(id)) {
+      console.error("⛔️ ID invalide reçu :", req.params.id);
+      return res.status(400).json({ error: "ID de commande invalide ou manquant" });
+    }
+
+    console.log("📦 ID reçu :", id);
+
+    const order = await prisma.gasOrder.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            phone: true,
+            avatar: true
+          }
+        },
+        vendor: {
+          include: {
+            ville: true,
+            admin: {
+              select: {
+                id: true,
+                username: true,
+                email: true
               }
             }
-          },
-          livreur: {
-            select: {
-              id: true,
-              username: true,
-              prenom: true,
-              telephone: true,
-              typeVehicule: true,
-              plaqueVehicule: true
-            }
-          },
-          review: true
-        }
-      });
-
-      if (!order) {
-        return res.status(404).json({ message: "Commande non trouvée" });
+          }
+        },
+        livreur: {
+          select: {
+            id: true,
+            username: true,
+            prenom: true,
+            telephone: true,
+            typeVehicule: true,
+            plaqueVehicule: true
+          }
+        },
+        review: true
       }
+    });
 
-      res.status(200).json(order);
-    } catch (error) {
-      handleServerError(res, error);
+    if (!order) {
+      return res.status(404).json({ message: "Commande non trouvée" });
     }
-  },
+
+    return res.status(200).json(order);
+  } catch (error) {
+    console.error("💥 Erreur serveur :", error);
+    handleServerError(res, error);
+  }
+},
+
 
   // Obtenir une commande par son numéro
   async getGasOrderByNumber(req, res) {
@@ -278,20 +285,20 @@ export default {
       // Ajouter des timestamps selon le statut
       const now = new Date();
       switch (status) {
-        case 'GAS_CONFIRMED':
+        case 'VALIDER':
           updateData.confirmedAt = now;
           break;
-        case 'GAS_PREPARING':
+        case 'ASSIGNEE':
           updateData.preparedAt = now;
           break;
-        case 'GAS_OUT_FOR_DELIVERY':
+        case 'EN_COURS':
           updateData.dispatchedAt = now;
           break;
-        case 'GAS_DELIVERED':
+        case 'LIVREE':
           updateData.deliveredAt = now;
           updateData.paymentStatus = 'GAS_PAYMENT_PAID'; // Assumé payé à la livraison
           break;
-        case 'GAS_CANCELLED':
+        case 'ANNULEE':
           updateData.cancelledAt = now;
           break;
       }
@@ -529,7 +536,7 @@ export default {
         return res.status(404).json({ message: "Commande non trouvée" });
       }
 
-      if (['GAS_DELIVERED', 'GAS_CANCELLED'].includes(order.status)) {
+      if (['LIVREE', 'ANNULEE'].includes(order.status)) {
         return res.status(400).json({ 
           message: "Cette commande ne peut pas être annulée" 
         });
@@ -538,7 +545,7 @@ export default {
       const cancelledOrder = await prisma.gasOrder.update({
         where: { id: parseInt(id) },
         data: {
-          status: 'GAS_CANCELLED',
+          status: 'ANNULEE',
           cancelledAt: new Date(),
           cancellationReason,
           paymentStatus: 'GAS_PAYMENT_REFUNDED'
@@ -600,15 +607,15 @@ export default {
         totalRevenue
       ] = await Promise.all([
         prisma.gasOrder.count({ where: whereClause }),
-        prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_PENDING' } }),
-        prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_CONFIRMED' } }),
-        prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_PREPARING' } }),
+        prisma.gasOrder.count({ where: { ...whereClause, status: 'EN_ATTENTE' } }),
+        prisma.gasOrder.count({ where: { ...whereClause, status: 'VALIDER' } }),
+        prisma.gasOrder.count({ where: { ...whereClause, status: 'ASSIGNEE' } }),
         prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_READY' } }),
-        prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_OUT_FOR_DELIVERY' } }),
-        prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_DELIVERED' } }),
-        prisma.gasOrder.count({ where: { ...whereClause, status: 'GAS_CANCELLED' } }),
+        prisma.gasOrder.count({ where: { ...whereClause, status: 'EN_COURS' } }),
+        prisma.gasOrder.count({ where: { ...whereClause, status: 'LIVREE' } }),
+        prisma.gasOrder.count({ where: { ...whereClause, status: 'ANNULEE' } }),
         prisma.gasOrder.aggregate({
-          where: { ...whereClause, status: 'GAS_DELIVERED' },
+          where: { ...whereClause, status: 'LIVREE' },
           _sum: { totalPrice: true }
         })
       ]);

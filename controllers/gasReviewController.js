@@ -35,7 +35,7 @@ export default {
         where: {
           userId: parseInt(userId),
           vendorId: parseInt(vendorId),
-          status: 'GAS_DELIVERED'
+          status: 'LIVREE'
         }
       });
 
@@ -219,7 +219,7 @@ export default {
         return res.status(403).json({ message: "Non autorisé" });
       }
 
-      if (order.status !== 'GAS_DELIVERED') {
+      if (order.status !== 'LIVREE') {
         return res.status(400).json({ 
           message: "Vous ne pouvez évaluer que les commandes livrées" 
         });

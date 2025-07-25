@@ -28,6 +28,12 @@ import prixRoute from "./routes/prixRoute.js"
 import notificationRoute from "./routes/notificationRoute.js"
 import complementsRoute from "./routes/complementsRoute.js"
 import livreurRoute from "./routes/livreurRoute.js"
+import gasRoutes from "./routes/gasRoutes.js"
+import gasReviewRoutes from "./routes/gasReviewRoutes.js"
+import gasVendorRoutes from "./routes/gasVendorRoutes.js"
+import gasOrderRoutes from "./routes/gasOrderRoutes.js"
+
+
 import { Expo } from 'expo-server-sdk';
 
 dotenv.config();
@@ -103,6 +109,12 @@ server.use("/", menusRapideRoute)
 server.use("/", heureOuveruteRoute)
 server.use("/", notificationRoute)
 server.use("/", complementsRoute)
+server.use("/", gasRoutes)
+server.use("/", gasReviewRoutes)
+server.use("/", gasVendorRoutes)
+server.use("/", gasOrderRoutes)
+
+
 
 server.use('/images', express.static('images'))
 

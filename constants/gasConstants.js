@@ -74,19 +74,19 @@ export const ORDER_TYPES = {
 
 // Statuts des commandes
 export const ORDER_STATUS = {
-  GAS_PENDING: {
+  EN_ATTENTE: {
     name: 'En attente',
     description: 'Commande reçue, en attente de confirmation',
     color: '#F59E0B',
     icon: 'time-outline'
   },
-  GAS_CONFIRMED: {
+  VALIDER: {
     name: 'Confirmée',
     description: 'Commande confirmée par le vendeur',
     color: '#06B6D4',
     icon: 'checkmark-circle-outline'
   },
-  GAS_PREPARING: {
+  ASSIGNEE: {
     name: 'En préparation',
     description: 'Commande en cours de préparation',
     color: '#F59E0B',
@@ -98,19 +98,19 @@ export const ORDER_STATUS = {
     color: '#8B5CF6',
     icon: 'bag-check-outline'
   },
-  GAS_OUT_FOR_DELIVERY: {
+  EN_COURS: {
     name: 'En livraison',
     description: 'Commande en cours de livraison',
     color: '#06B6D4',
     icon: 'bicycle-outline'
   },
-  GAS_DELIVERED: {
+  LIVREE: {
     name: 'Livrée',
     description: 'Commande livrée avec succès',
     color: '#10B981',
     icon: 'checkmark-done-circle-outline'
   },
-  GAS_CANCELLED: {
+  ANNULEE: {
     name: 'Annulée',
     description: 'Commande annulée',
     color: '#EF4444',
@@ -266,8 +266,8 @@ export function getOrderStatusInfo(status) {
  */
 export function canCancelOrder(status) {
   const nonCancellableStatuses = [
-    'GAS_DELIVERED',
-    'GAS_CANCELLED',
+    'LIVREE',
+    'ANNULEE',
     'GAS_REFUNDED'
   ];
   return !nonCancellableStatuses.includes(status);
@@ -279,7 +279,7 @@ export function canCancelOrder(status) {
  * @returns {boolean} True si la commande peut être évaluée
  */
 export function canReviewOrder(status) {
-  return status === 'GAS_DELIVERED';
+  return status === 'LIVREE';
 }
 
 /**
@@ -421,11 +421,11 @@ export function calculateVendorStats(vendor) {
   const reviews = vendor.reviews || [];
   
   const totalOrders = orders.length;
-  const completedOrders = orders.filter(o => o.status === 'GAS_DELIVERED').length;
-  const cancelledOrders = orders.filter(o => o.status === 'GAS_CANCELLED').length;
+  const completedOrders = orders.filter(o => o.status === 'LIVREE').length;
+  const cancelledOrders = orders.filter(o => o.status === 'ANNULEE').length;
   
   const totalRevenue = orders
-    .filter(o => o.status === 'GAS_DELIVERED')
+    .filter(o => o.status === 'LIVREE')
     .reduce((sum, o) => sum + o.totalPrice, 0);
   
   const avgRating = reviews.length > 0 

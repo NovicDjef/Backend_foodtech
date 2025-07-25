@@ -461,12 +461,6 @@ model PrixLivraisonGaz {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
-
-// ========================================
-// 🔥 NOUVEAUX MODÈLES POUR LE SYSTÈME DE GAZ
-// ========================================
-
-// Modèle pour les vendeurs de gaz
 model GasVendor {
   id              Int      @id @default(autoincrement())
   name            String   // Ex: "Gaz Express Akwa"
@@ -495,7 +489,6 @@ model GasVendor {
   @@index([location, isActive])  // Index par lieu
 }
 
-// Modèle pour les commandes de gaz
 model GasOrder {
   id                   Int            @id @default(autoincrement())
   orderNumber          String         @unique @default(cuid()) // Numéro de commande unique
@@ -541,7 +534,6 @@ model GasOrder {
   @@index([orderNumber])             // Index numéro de commande
 }
 
-// Modèle pour les avis sur les vendeurs
 model GasVendorReview {
   id          Int       @id @default(autoincrement())
   user        User      @relation("UserGasVendorReviews", fields: [userId], references: [id])
@@ -556,7 +548,6 @@ model GasVendorReview {
   @@unique([userId, vendorId]) // Un avis par utilisateur par vendeur
 }
 
-// Modèle pour les avis sur les commandes
 model GasOrderReview {
   id          Int      @id @default(autoincrement())
   user        User     @relation("UserGasOrderReviews", fields: [userId], references: [id])
