@@ -353,7 +353,7 @@ async sendPushNotificationToLivreur (pushToken, commandeData, livreurId) {
         include: {
         user: true,
         plat: true,
-        //payement: true,
+        //payment: true,
         // livraison: true,
         // complements: true,
       },
@@ -589,7 +589,7 @@ async accepterCommande (req, res) {
               categorie: true
             }
           },
-          payement: true,
+          payment: true,
           livraison: true,
           complements: {
           include: {
@@ -636,7 +636,7 @@ async accepterCommande (req, res) {
         where: { userId: parseInt(userId) },
         include: {
           plat: true,
-          payement: true,
+          payment: true,
           livraison: true,
           complements: true
         }
@@ -820,7 +820,7 @@ async updateCommandeStatus(req, res) {
           }
         },
         include: {
-          payement: true,
+          payment: true,
         }
       });
 
@@ -842,7 +842,7 @@ async updateCommandeStatus(req, res) {
         include: {
           user: true,
           plats: true,
-          payement: true,
+          payment: true,
           livraison: true,
         }
       });

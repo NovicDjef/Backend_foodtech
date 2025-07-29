@@ -30,9 +30,9 @@ router.patch('/vendors/:id/status', adminAuthMiddleware, gasVendorController.tog
 
 // Routes authentifiées commandes
 router.post('/orders', userAuthMiddleware, gasOrderController.createGasOrder);
-router.get('/orders/user/:userId', userAuthMiddleware, gasOrderController.getUserOrders);
-router.get('/orders/:id', userAuthMiddleware, gasOrderController.getGasOrderById);
-router.get('/orders/number/:orderNumber', userAuthMiddleware, gasOrderController.getGasOrderByNumber);
+router.get('/orders/user/:userId', gasOrderController.getUserOrders);
+router.get('/orders/:id', gasOrderController.getGasOrderById);
+router.get('/orders/number/:orderNumber', gasOrderController.getGasOrderByNumber);
 router.patch('/orders/:id/cancel', userAuthMiddleware, gasOrderController.cancelOrder);
 
 // Routes admin commandes

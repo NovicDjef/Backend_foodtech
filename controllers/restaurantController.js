@@ -90,34 +90,62 @@ console.log("restaurant :", newRestaurant)
   },
 
   // Mettre à jour un restaurant
-  async updateRestaurant(req, res) {
-    try {
-      const { id } = req.params;
-      const { name, phone, adresse, image, description, latitude, longitude, adminId, villeId } = req.body;
+ async updateRestaurant(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      phone,
+      adresse,
+      image,
+      description,
+      latitude,
+      longitude,
+      adminId,
+      villeId
+    } = req.body;
 
-      const updatedRestaurant = await prisma.restaurant.update({
-        where: { id: parseInt(id) },
-        data: {
-          name,
-          phone,
-          adresse,
-          image,
-          description,
-          latitude: latitude ? parseFloat(latitude) : undefined,
-          longitude: longitude ? parseFloat(longitude) : undefined,
-          admin: adminId ? { connect: { id: parseInt(adminId) } } : undefined,
-          ville: villeId ? { connect: { id: parseInt(villeId) } } : undefined,
-        },
-      });
+    const dataToUpdate = {};
 
-      res.status(200).json({
-        message: "Restaurant mis à jour avec succès",
-        restaurant: updatedRestaurant
-      });
-    } catch (error) {
-      handleServerError(res, error);
+    if (name?.trim()) dataToUpdate.name = name.trim();
+    if (phone?.trim()) dataToUpdate.phone = phone.trim();
+    if (adresse?.trim()) dataToUpdate.adresse = adresse.trim();
+    if (image?.trim()) dataToUpdate.image = image.trim();
+    if (description?.trim()) dataToUpdate.description = description.trim();
+
+    if (latitude && !isNaN(parseFloat(latitude))) {
+      dataToUpdate.latitude = parseFloat(latitude);
     }
-  },
+
+    if (longitude && !isNaN(parseFloat(longitude))) {
+      dataToUpdate.longitude = parseFloat(longitude);
+    }
+
+    if (adminId && !isNaN(parseInt(adminId))) {
+      dataToUpdate.admin = { connect: { id: parseInt(adminId) } };
+    }
+
+    if (villeId && !isNaN(parseInt(villeId))) {
+      dataToUpdate.ville = { connect: { id: parseInt(villeId) } };
+    }
+
+    console.log("🔁 Données à mettre à jour :", dataToUpdate);
+
+    const updatedRestaurant = await prisma.restaurant.update({
+      where: { id: parseInt(id) },
+      data: dataToUpdate,
+    });
+
+    res.status(200).json({
+      message: "Restaurant mis à jour avec succès",
+      restaurant: updatedRestaurant
+    });
+  } catch (error) {
+    console.error("💥 Erreur updateRestaurant :", error);
+    handleServerError(res, error);
+  }
+},
+
 
   // Supprimer un restaurant
   async deleteRestaurant(req, res) {
