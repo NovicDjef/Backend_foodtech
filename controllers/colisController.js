@@ -298,6 +298,164 @@ export default {
     }
   },
 
+  async updateColisStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, livreurId, raison } = req.body;
+    
+    console.log(`📡 Mise à jour colis ${id}:`, { status, livreurId });
+
+    // Récupérer le colis actuel pour connaître l'ancien statut
+    const currentColis = await prisma.colis.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        user: {
+          select: { id: true, username: true, pushToken: true, phone: true }
+        },
+        livreur: {
+          select: { id: true, username: true, prenom: true, typeVehicule: true }
+        }
+      }
+    });
+
+    if (!currentColis) {
+      return res.status(404).json({
+        success: false,
+        message: "Colis non trouvé"
+      });
+    }
+
+    const oldStatus = currentColis.status;
+    console.log(`📋 Changement de statut colis: ${oldStatus} → ${status}`);
+
+    // Préparer les données à mettre à jour
+    const updateData = {
+      status,
+      updatedAt: new Date()
+    };
+
+    // Ajouter livreurId seulement s'il est fourni
+    if (livreurId !== undefined && livreurId !== null) {
+        updateData.livreur = {
+          connect: { id: parseInt(livreurId) }
+    };
+      console.log("✅ Assignation livreur colis:", updateData.livreurId);
+    }
+
+    // ✅ NOUVEAU: Mise à jour des timestamps selon le statut
+    switch (status) {
+      case 'VALIDER':
+      case 'CONFIRMED':
+        updateData.updatedAt = new Date();
+        break;
+      case 'EN_COURS':
+      case 'IN_TRANSIT':
+        updateData.updatedAt = new Date();
+        break;
+      case 'LIVREE':
+      case 'DELIVERED':
+        updateData.updatedAt = new Date();
+        break;
+      case 'ANNULEE':
+      case 'CANCELLED':
+        updateData.updatedAt = new Date();
+        break;
+    }
+
+    console.log("📦 Données de mise à jour colis complètes:", updateData);
+
+    // Mettre à jour le colis
+    const updatedColis = await prisma.colis.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        user: {
+          select: { id: true, username: true, phone: true, pushToken: true}
+        },
+        livreur: {
+          select: { id: true, username: true, prenom: true, typeVehicule: true }
+        }
+      }
+    });
+
+    // 🚀 NOUVEAU: Notifications automatiques au client pour colis
+    let clientNotificationResult = { success: false, message: 'Pas de notification' };
+
+    // Récupérer les infos du livreur si nécessaire
+    let livreurInfo = null;
+    if (livreurId) {
+      livreurInfo = await prisma.livreur.findUnique({
+        where: { id: parseInt(livreurId) },
+        select: {
+          id: true,
+          username: true,
+          prenom: true,
+          typeVehicule: true,
+          telephone: true
+        }
+      });
+    }
+
+    // Envoyer la notification selon le statut
+    try {
+      const NOTIFIABLE_STATUSES = ['VALIDER', 'CONFIRMED', 'EN_COURS', 'IN_TRANSIT', 'LIVREE', 'DELIVERED', 'ANNULEE', 'CANCELLED'];
+
+      const shouldNotify = NOTIFIABLE_STATUSES.includes(status);
+      
+      if (shouldNotify && updatedColis.user.pushToken) {
+        console.log(`📱 Envoi notification client colis pour statut: ${status}`);
+        
+        clientNotificationResult = await notifyClient(
+          updatedColis, 
+          status, 
+          livreurInfo,
+          { 
+            raison: raison || 'Non spécifiée'
+          }
+        );
+      } else if (shouldNotify && !updatedColis.user.pushToken) {
+        console.warn(`⚠️ Client ${updatedColis.user.id} sans token push - notification colis non envoyée`);
+      }
+
+    } catch (notificationError) {
+      // Les erreurs de notification ne doivent pas faire échouer la mise à jour
+      console.error('❌ Erreur notification client colis (non critique):', notificationError);
+      clientNotificationResult = {
+        success: false,
+        error: notificationError.message,
+        message: 'Erreur notification non critique'
+      };
+    }
+
+    console.log("✅ Colis mis à jour:", {
+      id: updatedColis.id,
+      status: updatedColis.status,
+      livreurId: updatedColis.livreurId,
+      clientNotified: clientNotificationResult.success
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Statut du colis mis à jour avec succès",
+      colis: updatedColis,
+      // 🆕 Informations sur la notification client
+      clientNotification: {
+        sent: clientNotificationResult.success,
+        message: clientNotificationResult.message,
+        userHasPushToken: !!updatedColis.user?.pushToken,
+        statusChanged: oldStatus !== status,
+        oldStatus: oldStatus,
+        newStatus: status
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Erreur updateColisStatus:", error);
+    handleServerError(res, error);
+  }
+},
+
+
   // Supprimer un colis
   async deleteColis(req, res) {
     try {
@@ -312,6 +470,7 @@ export default {
       handleServerError(res, error);
     }
   },
+/*******  33a027bc-1615-4810-9ed6-61527828e8d7  *******/
 
   // Obtenir les colis d'un utilisateur spécifique
   async getUserColis(req, res) {

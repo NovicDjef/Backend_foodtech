@@ -4,6 +4,7 @@ import gasOrderController from '../controllers/gasOrderController.js';
 import gasReviewController from '../controllers/gasReviewController.js';
 import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 import userAuthMiddleware from '../middlewares/userAuthMiddleware.js';
+import authWithRoles from '../middlewares/authWithRoles.js';
 
 const router = express.Router();
 
@@ -36,11 +37,11 @@ router.get('/orders/number/:orderNumber', gasOrderController.getGasOrderByNumber
 router.patch('/orders/:id/cancel', userAuthMiddleware, gasOrderController.cancelOrder);
 
 // Routes admin commandes
-router.get('/orders', adminAuthMiddleware, gasOrderController.getAllGasOrders);
-router.get('/orders/vendor/:vendorId', adminAuthMiddleware, gasOrderController.getVendorOrders);
-router.patch('/orders/:id/status', adminAuthMiddleware, gasOrderController.updateOrderStatus);
-router.patch('/orders/:id/assign', adminAuthMiddleware, gasOrderController.assignDeliveryPerson);
-router.get('/orders/stats', adminAuthMiddleware, gasOrderController.getOrdersStats);
+router.get('/orders', gasOrderController.getAllGasOrders);
+router.get('/orders/vendor/:vendorId', authWithRoles('admin', 'livreur'), gasOrderController.getVendorOrders);
+router.patch('/orders/:id/status', authWithRoles('admin', 'livreur'), gasOrderController.updateOrderStatus);
+router.patch('/orders/:id/assign', authWithRoles('admin', 'livreur'), gasOrderController.assignDeliveryPerson);
+router.get('/orders/stats', authWithRoles('admin', 'livreur'), gasOrderController.getOrdersStats);
 
 // ========================================
 // ROUTES AVIS

@@ -125,7 +125,6 @@ const prisma = new PrismaClient();
         include: {
           restaurants: {
             include: {
-              menus: true,
               heuresOuverture: true
             }
           }

@@ -235,7 +235,6 @@ async getGasOrderById(req, res) {
   }
 },
 
-
   // Obtenir une commande par son numéro
   async getGasOrderByNumber(req, res) {
     try {
@@ -275,74 +274,139 @@ async getGasOrderById(req, res) {
   },
 
   // Mettre à jour le statut d'une commande
-  async updateOrderStatus(req, res) {
-    try {
-      const { id } = req.params;
-      const { status, vendorNotes, deliveryNotes, estimatedDeliveryTime } = req.body;
+  // async updateOrderStatus(req, res) {
+  //   try {
+  //     const { id } = req.params;
+  //     const { status, vendorNotes, deliveryNotes, estimatedDeliveryTime } = req.body;
 
-      const updateData = { status };
+  //     const updateData = { status };
       
-      // Ajouter des timestamps selon le statut
-      const now = new Date();
-      switch (status) {
-        case 'VALIDER':
-          updateData.confirmedAt = now;
-          break;
-        case 'ASSIGNEE':
-          updateData.preparedAt = now;
-          break;
-        case 'EN_COURS':
-          updateData.dispatchedAt = now;
-          break;
-        case 'LIVREE':
-          updateData.deliveredAt = now;
-          updateData.paymentStatus = 'GAS_PAYMENT_PAID'; // Assumé payé à la livraison
-          break;
-        case 'ANNULEE':
-          updateData.cancelledAt = now;
-          break;
-      }
+  //     // Ajouter des timestamps selon le statut
+  //     const now = new Date();
+  //     switch (status) {
+  //       case 'VALIDER':
+  //         updateData.confirmedAt = now;
+  //         break;
+  //       case 'ASSIGNEE':
+  //         updateData.preparedAt = now;
+  //         break;
+  //       case 'EN_COURS':
+  //         updateData.dispatchedAt = now;
+  //         break;
+  //       case 'LIVREE':
+  //         updateData.deliveredAt = now;
+  //         updateData.paymentStatus = 'GAS_PAYMENT_PAID'; // Assumé payé à la livraison
+  //         break;
+  //       case 'ANNULEE':
+  //         updateData.cancelledAt = now;
+  //         break;
+  //     }
 
-      if (vendorNotes) updateData.vendorNotes = vendorNotes;
-      if (deliveryNotes) updateData.deliveryNotes = deliveryNotes;
-      if (estimatedDeliveryTime) updateData.estimatedDeliveryTime = estimatedDeliveryTime;
+  //     if (vendorNotes) updateData.vendorNotes = vendorNotes;
+  //     if (deliveryNotes) updateData.deliveryNotes = deliveryNotes;
+  //     if (estimatedDeliveryTime) updateData.estimatedDeliveryTime = estimatedDeliveryTime;
 
-      const updatedOrder = await prisma.gasOrder.update({
-        where: { id: parseInt(id) },
-        data: updateData,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              phone: true
-            }
-          },
-          vendor: {
-            select: {
-              id: true,
-              name: true,
-              location: true
-            }
-          },
-          livreur: {
-            select: {
-              id: true,
-              username: true,
-              prenom: true
-            }
-          }
-        }
-      });
+  //     const updatedOrder = await prisma.gasOrder.update({
+  //       where: { id: parseInt(id) },
+  //       data: updateData,
+  //       include: {
+  //         user: {
+  //           select: {
+  //             id: true,
+  //             username: true,
+  //             phone: true
+  //           }
+  //         },
+  //         vendor: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             location: true
+  //           }
+  //         },
+  //         livreur: {
+  //           select: {
+  //             id: true,
+  //             username: true,
+  //             prenom: true
+  //           }
+  //         }
+  //       }
+  //     });
 
-      res.status(200).json({
-        message: "Statut de la commande mis à jour avec succès",
-        order: updatedOrder
-      });
-    } catch (error) {
-      handleServerError(res, error);
+  //     res.status(200).json({
+  //       message: "Statut de la commande mis à jour avec succès",
+  //       order: updatedOrder
+  //     });
+  //   } catch (error) {
+  //     handleServerError(res, error);
+  //   }
+  // },
+
+// ✅ Contrôleur
+async updateOrderStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, vendorNotes, deliveryNotes, estimatedDeliveryTime, livreurId } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Le champ 'status' est requis." });
     }
-  },
+
+    const updateData = { status };
+    const now = new Date();
+
+    // ✅ Ajout des timestamps selon le statut
+    switch (status) {
+      case 'VALIDER':
+        updateData.confirmedAt = now;
+        break;
+      case 'ASSIGNEE':
+        updateData.preparedAt = now;
+        break;
+      case 'EN_COURS':
+        updateData.dispatchedAt = now;
+        break;
+      case 'LIVREE':
+        updateData.deliveredAt = now;
+        updateData.paymentStatus = 'GAS_PAYMENT_PAID';
+        break;
+      case 'ANNULEE':
+        updateData.cancelledAt = now;
+        break;
+    }
+
+    // ✅ Ajout conditionnel des autres champs
+    if (vendorNotes) updateData.vendorNotes = vendorNotes;
+    if (deliveryNotes) updateData.deliveryNotes = deliveryNotes;
+    if (estimatedDeliveryTime) updateData.estimatedDeliveryTime = estimatedDeliveryTime;
+
+    // ✅ Assignation du livreur (relation Prisma)
+    if (livreurId) {
+      updateData.livreur = { connect: { id: parseInt(livreurId) } };
+    }
+
+    const updatedOrder = await prisma.gasOrder.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        user: { select: { id: true, username: true, phone: true } },
+        vendor: { select: { id: true, name: true, location: true } },
+        livreur: { select: { id: true, username: true, prenom: true } }
+      }
+    });
+
+    res.status(200).json({
+      message: "Statut de la commande mis à jour avec succès",
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error("❌ Erreur updateOrderStatus:", error);
+    handleServerError(res, error);
+  }
+},
+
 
   // Assigner un livreur à une commande
   async assignDeliveryPerson(req, res) {

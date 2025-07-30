@@ -18,6 +18,7 @@ router.get('/colis/en-livraison', colisController.getColisEnLivraison);
 router.post('/commandes', userAuthMiddleware, colisController.createColis);
 router.post('/colis', upload.single('imageColis'), userAuthMiddleware, colisController.createColis);
 router.put('/colis/:id', userAuthMiddleware, colisController.updateCommandeStatus);
+router.patch('/colis/:id', upload.single('imageColis'), colisController.updateColisStatus);
 router.delete('/colis/:id', userAuthMiddleware, colisController.deleteColis);
 router.post('/colis/:id/livraison', userAuthMiddleware, colisController.addLivraisonToColis);
 

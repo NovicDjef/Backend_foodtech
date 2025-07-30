@@ -111,8 +111,7 @@ async postLivraisonAsAccepted (req, res) {
        plat: {
                 include: {
                 categorie: {
-                    include: {
-                    menu: {
+                    
                         include: {
                         restaurant: {
                             select: {
@@ -123,8 +122,7 @@ async postLivraisonAsAccepted (req, res) {
                             }
                         }
                         }
-                    }
-                    }
+                   
                 }
                 }
             
@@ -340,8 +338,7 @@ async getLivraisonsActive (req, res) {
             plat: {
                 include: {
                 categorie: {
-                    include: {
-                    menu: {
+                    
                         include: {
                         restaurant: {
                             select: {
@@ -352,8 +349,7 @@ async getLivraisonsActive (req, res) {
                             }
                         }
                         }
-                    }
-                    }
+                  
                 }
                 }
             
@@ -447,14 +443,12 @@ async getLivraisonsHistorique(req, res) {
               include: {
                 categorie: {
                   include: {
-                    menu: {
-                      include: {
+                   
                         restaurant: {
                           select: { name: true, adresse: true }
                         }
                       }
-                    }
-                  }
+                  
                 }
               }
             }
