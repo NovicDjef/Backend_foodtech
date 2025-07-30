@@ -1,6 +1,7 @@
 import express from 'express';
 import upload from '../middlewares/multer.js';
 import livreurController from '../controllers/livreurController.js';
+import gainController from '../controllers/gainController.js';
 
 const router = express.Router();
 
@@ -23,5 +24,12 @@ router.get('/debug/tokens', livreurController.debugTokens);
 // Routes bonus
 router.patch('/livreur/:id/disponibilite', livreurController.updateDisponibilite);
 router.patch('/livreur/:id/position', livreurController.updatePosition);
+
+// ✅ NOUVELLES ROUTES POUR LES GAINS
+router.get('/livreur/:id/gains', gainController.getGainsLivreur);
+router.get('/livreur/:id/gains/stats', gainController.getStatsGainsLivreur);
+router.post('/livreur/:id/gains/retirer', gainController.retirerGains);
+router.post('/gains/calculer', gainController.calculerGainLivraison);
+router.patch('/livreur/:id/commissions', gainController.updateCommissionsLivreur);
 
 export default router;
