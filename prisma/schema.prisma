@@ -293,6 +293,12 @@ model Livreur {
   disponible      Boolean  @default(true)
   note            Float?   @default(5.0)
   totalLivraisons Int      @default(0)
+  commissionRepas Float @default(0.60) // 60% sur les repas
+  commissionColis Float @default(0.65) // 65% sur les colis  
+  commissionGaz Float @default(0.55)   // 55% sur le gaz
+  totalGains Float @default(0.0)       // Total des gains accumulés
+  gainsDisponibles Float @default(0.0) // Gains non encore retirés
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   positionActuelle Json?
@@ -303,10 +309,10 @@ model Livreur {
   plaqueVehicule  String?
   NotificationHistory NotificationHistory[]
   HistoriquePosition HistoriquePosition[]
-  commande       Commande[]
-  Colis         Colis[]
-
-  GasOrder GasOrder[]
+  commande        Commande[]
+  Colis           Colis[]
+  gains           GainLivreur[]
+  GasOrder        GasOrder[]
 }
 
 model HistoriquePosition {
@@ -564,6 +570,64 @@ model GasOrderReview {
   updatedAt   DateTime @updatedAt
   
   @@map("gas_order_reviews")
+}
+
+model GainLivreur {
+  id Int @id @default(autoincrement())
+  
+  livreur Livreur @relation(fields: [livreurId], references: [id])
+  livreurId Int
+  
+  // Référence vers la commande/livraison
+  commandeId Int?
+  colisId Int?
+  gasOrderId Int?
+  livraisonId Int?
+  
+  typeLivraison TypeLivraison // REPAS, COLIS, GAZ
+  prixLivraison Float // Prix de livraison (pas le prix total)
+  pourcentageCommission Float // Pourcentage appliqué
+  montantGagne Float // Montant final gagné
+  
+  status GainStatus @default(EN_ATTENTE) // EN_ATTENTE, DISPONIBLE, RETIRE
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  dateRetrait DateTime? // Date du retrait si retiré
+  
+  @@map("gains_livreur")
+  @@index([livreurId, createdAt])
+  @@index([status])
+}
+
+model TarifLivraison {
+  id Int @id @default(autoincrement())
+  
+  typeLivraison TypeLivraison
+  prixBase Float // Prix de base
+  
+  // Modifieurs selon les conditions
+  multiplicateurWeekend Float @default(1.0)   // x1.2 le weekend
+  multiplicateurNuit Float @default(1.0)      // x1.5 la nuit
+  multiplicateurDistance Float @default(1.0)  // selon la distance
+  
+  actif Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("tarifs_livraison")
+}
+
+enum TypeLivraison {
+  REPAS
+  COLIS
+  GAZ
+}
+
+enum GainStatus {
+  EN_ATTENTE    // Livraison terminée mais pas encore validée
+  DISPONIBLE    // Gain disponible pour retrait
+  RETIRE        // Gain retiré
 }
 
 
