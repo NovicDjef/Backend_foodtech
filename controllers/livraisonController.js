@@ -24,6 +24,12 @@ const notifyClient = async (clientPushToken, notification) => {
     console.error('❌ Erreur notification client:', error);
   }
 }
+// server/controllers/livraisonController.js
+
+
+
+module.exports = { postNouvelleLivraison };
+
 
 export default  {
 
@@ -95,12 +101,12 @@ export default  {
 // },
 async postNouvelleLivraison(req, res) {
   try {
-    const { livreurId, userId, commandeId, colisId, status, type } = req.body;
+    const { livreurId, userId, commandeId, colisId, gasOrderId, status, type } = req.body;
 
     console.log('📥 Données reçues dans postNouvelleLivraison:', req.body);
 
-    if (!livreurId || !userId) {
-      return res.status(400).json({ message: '❌ livreurId et userId sont requis' });
+    if (!livreurId || !userId || !type) {
+      return res.status(400).json({ message: '❌ livreurId, userId et type sont requis' });
     }
 
     const livreurExiste = await prisma.livreur.findUnique({ where: { id: parseInt(livreurId) } });
@@ -113,11 +119,12 @@ async postNouvelleLivraison(req, res) {
       livreurId: parseInt(livreurId),
       userId: parseInt(userId),
       status: status || 'ASSIGNEE',
-      type // ✅ ajout du champ requis
+      type,
     };
 
     if (commandeId) livraisonData.commandeId = parseInt(commandeId);
     if (colisId) livraisonData.colisId = parseInt(colisId);
+    if (gasOrderId) livraisonData.gasOrderId = parseInt(gasOrderId);
 
     const livraison = await prisma.livraison.create({
       data: livraisonData,
@@ -126,6 +133,13 @@ async postNouvelleLivraison(req, res) {
         user: { select: { username: true, phone: true } },
         commande: { include: { plat: true } },
         colis: true,
+        gasOrder: {
+          include: {
+            user: { select: { id: true, username: true, phone: true } },
+            vendor: { select: { id: true, name: true, location: true } },
+            livreur: { select: { id: true, username: true, prenom: true } }
+          }
+        },
         historiquePositions: true,
         serviceLivraison: true
       }
@@ -145,7 +159,7 @@ async postNouvelleLivraison(req, res) {
       details: error.message
     });
   }
-}, 
+},
 
     // ✅ API : Livreur accepte une commande
 async postLivraisonAsAccepted(req, res) {

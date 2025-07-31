@@ -281,6 +281,8 @@ model Livraison {
   colis            Colis?   @relation(fields: [colisId], references: [id])
   historiquePositions HistoriquePosition[]
   serviceLivraison ServiceLivraison[]
+  gasOrderId          Int?
+  gasOrder            GasOrder?          @relation(fields: [gasOrderId], references: [id])
 }
 
 model Livreur {
@@ -515,6 +517,7 @@ model GasOrder {
   totalPrice           Float          // Prix total final
   position             String?        // Position GPS du client (optionnel)
   status               GasOrderStatus @default(EN_ATTENTE)
+  livraison            Livraison[]
   paymentStatus        GasPaymentStatus  @default(GAS_PAYMENT_PENDING)
   paymentMethod        GasPaymentMethod  @default(CASH_ON_DELIVERY)
   specialInstructions  String?        // Instructions spéciales du client
