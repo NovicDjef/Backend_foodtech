@@ -95,7 +95,7 @@ export default  {
 // },
 async postNouvelleLivraison(req, res) {
   try {
-    const { livreurId, userId, commandeId, colisId, status } = req.body;
+    const { livreurId, userId, commandeId, colisId, status, type } = req.body;
 
     console.log('📥 Données reçues dans postNouvelleLivraison:', req.body);
 
@@ -113,7 +113,9 @@ async postNouvelleLivraison(req, res) {
       livreurId: parseInt(livreurId),
       userId: parseInt(userId),
       status: status || 'ASSIGNEE',
+      type // ✅ ajout du champ requis
     };
+
     if (commandeId) livraisonData.commandeId = parseInt(commandeId);
     if (colisId) livraisonData.colisId = parseInt(colisId);
 
@@ -143,11 +145,7 @@ async postNouvelleLivraison(req, res) {
       details: error.message
     });
   }
-},
-
-
-
-
+}, 
 
     // ✅ API : Livreur accepte une commande
 async postLivraisonAsAccepted(req, res) {
