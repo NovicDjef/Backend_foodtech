@@ -27,10 +27,6 @@ const notifyClient = async (clientPushToken, notification) => {
 // server/controllers/livraisonController.js
 
 
-
-module.exports = { postNouvelleLivraison };
-
-
 export default  {
 
 // async postNouvelleLivraison(req, res) {
@@ -448,9 +444,7 @@ async getLivraisonsHistorique(req, res) {
   try {
     const { livreurId } = req.params;
     const { period = 'month' } = req.query;
-    
-    console.log(`📜 Récupération historique pour livreur ${livreurId}, période: ${period}`);
-    
+
     const livreurIdInt = parseInt(livreurId);
     if (isNaN(livreurIdInt)) {
       return res.status(400).json({ 
@@ -460,7 +454,6 @@ async getLivraisonsHistorique(req, res) {
       });
     }
 
-    // ✅ Calculer la date de début selon la période
     let dateDebut = new Date();
     switch (period) {
       case 'week':
@@ -472,10 +465,9 @@ async getLivraisonsHistorique(req, res) {
         dateDebut.setMonth(dateDebut.getMonth() - 1);
         break;
       case 'all':
-        dateDebut = new Date('2020-01-01'); // Date très ancienne
+        dateDebut = new Date('2020-01-01');
         break;
       default:
-        // Si c'est un nombre de jours
         const days = parseInt(period);
         if (!isNaN(days)) {
           dateDebut.setDate(dateDebut.getDate() - days);
@@ -484,78 +476,71 @@ async getLivraisonsHistorique(req, res) {
         }
     }
 
-    console.log(`📅 Recherche depuis le: ${dateDebut.toISOString()}`);
-
-    // ✅ CORRECTION PRINCIPALE: Chercher les livraisons TERMINEES (LIVREE)
     const historiqueLivraisons = await prisma.livraison.findMany({
       where: {
         livreurId: livreurIdInt,
-        status: "LIVREE", // ✅ CORRECTION: Seulement les livraisons terminées
+        status: 'LIVREE',
         heureLivraison: {
           gte: dateDebut,
-          lte: new Date() // ✅ Pas de livraisons futures
+          lte: new Date()
         }
       },
       include: {
         commande: {
           include: {
-            user: {
-              select: { id: true, username: true, phone: true }
-            },
+            user: { select: { id: true, username: true, phone: true } },
             plat: {
               include: {
                 categorie: {
                   include: {
-                   
-                        restaurant: {
-                          select: { name: true, adresse: true }
-                        }
-                      }
-                  
+                    restaurant: {
+                      select: { name: true, adresse: true }
+                    }
+                  }
                 }
               }
             }
           }
+        },
+        colis: {
+          include: {
+            expediteur: { select: { id: true, username: true, phone: true } },
+            destinataire: { select: { id: true, username: true, phone: true } }
+          }
+        },
+        gasOrder: {
+          include: {
+            user: { select: { id: true, username: true, phone: true } },
+            vendor: { select: { id: true, name: true, location: true } },
+            livreur: { select: { id: true, username: true, prenom: true } }
+          }
         }
       },
       orderBy: {
-        heureLivraison: 'desc' // Les plus récentes en premier
+        heureLivraison: 'desc'
       },
-      take: 100 // ✅ Augmenté la limite pour l'historique
+      take: 100
     });
-
-    console.log(`📚 ${historiqueLivraisons.length} livraisons trouvées dans l'historique (${period}) pour livreur ${livreurId}`);
-    
-    // ✅ Debug des données retournées
-    if (historiqueLivraisons.length > 0) {
-      console.log("🔍 Première livraison exemple:", {
-        id: historiqueLivraisons[0].id,
-        status: historiqueLivraisons[0].status,
-        heureLivraison: historiqueLivraisons[0].heureLivraison,
-        commandeId: historiqueLivraisons[0].commande?.id
-      });
-    }
 
     res.json({
       success: true,
       livraisons: historiqueLivraisons,
-      period: period,
+      period,
       total: historiqueLivraisons.length,
       dateDebut: dateDebut.toISOString()
     });
 
   } catch (error) {
     console.error('❌ Erreur historique livraisons:', error);
-    console.error('❌ Stack trace:', error.stack);
-    
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération de l\'historique',
+      message: "Erreur lors de la récupération de l'historique",
       livraisons: [],
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-},
+}
+
 
 
 // 📋 API : Récupérer les détails d'une livraison pour le livreur
