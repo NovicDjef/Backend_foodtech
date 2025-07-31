@@ -95,6 +95,8 @@ export default  {
 //     });
 //   }
 // },
+// server/controllers/livraisonController.js
+
 async postNouvelleLivraison(req, res) {
   try {
     const { livreurId, userId, commandeId, colisId, gasOrderId, status, type } = req.body;
@@ -127,7 +129,20 @@ async postNouvelleLivraison(req, res) {
       include: {
         livreur: { select: { username: true, prenom: true, telephone: true } },
         user: { select: { username: true, phone: true } },
-        commande: { include: { plat: true } },
+        commande: {
+          include: {
+            user: { select: { id: true, username: true, phone: true } },
+            plat: {
+              include: {
+                categorie: {
+                  include: {
+                    restaurant: { select: { name: true, adresse: true } }
+                  }
+                }
+              }
+            }
+          }
+        },
         colis: true,
         gasOrder: {
           include: {
@@ -440,6 +455,107 @@ async getLivraisonsActive (req, res) {
 },
 
 // GET /api/livraisons/historique/:livreurId?period=week|month|all
+// async getLivraisonsHistorique(req, res) {
+//   try {
+//     const { livreurId } = req.params;
+//     const { period = 'month' } = req.query;
+
+//     const livreurIdInt = parseInt(livreurId);
+//     if (isNaN(livreurIdInt)) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: 'livreurId invalide',
+//         livraisons: []
+//       });
+//     }
+
+//     let dateDebut = new Date();
+//     switch (period) {
+//       case 'week':
+//       case '7':
+//         dateDebut.setDate(dateDebut.getDate() - 7);
+//         break;
+//       case 'month':
+//       case '30':
+//         dateDebut.setMonth(dateDebut.getMonth() - 1);
+//         break;
+//       case 'all':
+//         dateDebut = new Date('2020-01-01');
+//         break;
+//       default:
+//         const days = parseInt(period);
+//         if (!isNaN(days)) {
+//           dateDebut.setDate(dateDebut.getDate() - days);
+//         } else {
+//           dateDebut.setMonth(dateDebut.getMonth() - 1);
+//         }
+//     }
+
+//     const historiqueLivraisons = await prisma.livraison.findMany({
+//       where: {
+//         livreurId: livreurIdInt,
+//         status: 'LIVREE',
+//         heureLivraison: {
+//           gte: dateDebut,
+//           lte: new Date()
+//         }
+//       },
+//       include: {
+//         commande: {
+//           include: {
+//             user: { select: { id: true, username: true, phone: true } },
+//             plat: {
+//               include: {
+//                 categorie: {
+//                   include: {
+//                     restaurant: {
+//                       select: { name: true, adresse: true }
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         },
+//         colis: {
+//           include: {
+//             expediteur: { select: { id: true, username: true, phone: true } },
+//             destinataire: { select: { id: true, username: true, phone: true } }
+//           }
+//         },
+//         gasOrder: {
+//           include: {
+//             user: { select: { id: true, username: true, phone: true } },
+//             vendor: { select: { id: true, name: true, location: true } },
+//             livreur: { select: { id: true, username: true, prenom: true } }
+//           }
+//         }
+//       },
+//       orderBy: {
+//         heureLivraison: 'desc'
+//       },
+//       take: 100
+//     });
+
+//     res.json({
+//       success: true,
+//       livraisons: historiqueLivraisons,
+//       period,
+//       total: historiqueLivraisons.length,
+//       dateDebut: dateDebut.toISOString()
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Erreur historique livraisons:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Erreur lors de la récupération de l'historique",
+//       livraisons: [],
+//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+//     });
+//   }
+// },
+
 async getLivraisonsHistorique(req, res) {
   try {
     const { livreurId } = req.params;
@@ -502,12 +618,7 @@ async getLivraisonsHistorique(req, res) {
             }
           }
         },
-        colis: {
-          include: {
-            expediteur: { select: { id: true, username: true, phone: true } },
-            destinataire: { select: { id: true, username: true, phone: true } }
-          }
-        },
+        colis: true,
         gasOrder: {
           include: {
             user: { select: { id: true, username: true, phone: true } },
@@ -539,7 +650,8 @@ async getLivraisonsHistorique(req, res) {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-}
+},
+
 
 
 
