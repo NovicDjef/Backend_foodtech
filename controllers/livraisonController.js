@@ -27,8 +27,6 @@ const notifyClient = async (clientPushToken, notification) => {
 
 export default  {
 
-// controllers/livraisonController.js
-
 // async postNouvelleLivraison(req, res) {
 //   try {
 //     const { livreurId, userId, commandeId, colisId, status } = req.body;
