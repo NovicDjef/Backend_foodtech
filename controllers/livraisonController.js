@@ -143,14 +143,14 @@ async postNouvelleLivraison(req, res) {
       details: error.message
     });
   }
-}
+},
 
 
 
 
 
     // ✅ API : Livreur accepte une commande
-async postLivraisonAsAccepted (req, res) {
+async postLivraisonAsAccepted(req, res) {
   try {
     const { commandeId, livreurId } = req.body;
 
