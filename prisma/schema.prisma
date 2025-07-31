@@ -267,10 +267,11 @@ model Article {
 
 model Livraison {
   id              Int      @id @default(autoincrement())
-  status          LivraisonStatus @default(ASSIGNEE)
+  status          LivraisonStatus @default(LIVREE)
   heureLivraison       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   livreurId       Int
+  type            String
   livreur         Livreur  @relation(fields: [livreurId], references: [id])
   user            User    @relation(fields: [userId], references: [id])
   userId          Int

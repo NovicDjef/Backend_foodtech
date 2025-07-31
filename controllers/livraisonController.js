@@ -29,51 +29,102 @@ export default  {
 
 // controllers/livraisonController.js
 
+// async postNouvelleLivraison(req, res) {
+//   try {
+//     const { livreurId, userId, commandeId, colisId, status } = req.body;
+
+//     if (!livreurId || !userId) {
+//       return res.status(400).json({ message: '❌ livreurId et userId sont requis' });
+//     }
+
+//     // 1. Vérifier l'existence du livreur
+//     const livreurExiste = await prisma.livreur.findUnique({
+//       where: { id: parseInt(livreurId) }
+//     });
+//     if (!livreurExiste) {
+//       return res.status(404).json({ message: 'Livreur non trouvé' });
+//     }
+
+//     // 2. Vérifier l'existence du client (user)
+//     const userExiste = await prisma.user.findUnique({
+//       where: { id: parseInt(userId) }
+//     });
+//     if (!userExiste) {
+//       return res.status(404).json({ message: 'Utilisateur client non trouvé' });
+//     }
+
+//     // 3. Créer la livraison
+//     const livraison = await prisma.livraison.create({
+//       data: {
+//         livreurId: parseInt(livreurId),
+//         userId: parseInt(userId),
+//         commandeId: commandeId ? parseInt(commandeId) : undefined,
+//         colisId: colisId ? parseInt(colisId) : undefined,
+//         status: status || 'ASSIGNEE',
+//       },
+//       include: {
+//         livreur: {
+//           select: { username: true, prenom: true, telephone: true }
+//         },
+//         user: {
+//           select: { username: true, phone: true }
+//         },
+//         commande: {
+//           include: {
+//             plat: true
+//           }
+//         },
+//         colis: true,
+//         historiquePositions: true,
+//         serviceLivraison: true
+//       }
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       message: '📦 Livraison créée avec succès',
+//       livraison
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Erreur création livraison:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Erreur serveur lors de la création de la livraison",
+//       details: error.message
+//     });
+//   }
+// },
 async postNouvelleLivraison(req, res) {
   try {
     const { livreurId, userId, commandeId, colisId, status } = req.body;
+
+    console.log('📥 Données reçues dans postNouvelleLivraison:', req.body);
 
     if (!livreurId || !userId) {
       return res.status(400).json({ message: '❌ livreurId et userId sont requis' });
     }
 
-    // 1. Vérifier l'existence du livreur
-    const livreurExiste = await prisma.livreur.findUnique({
-      where: { id: parseInt(livreurId) }
-    });
-    if (!livreurExiste) {
-      return res.status(404).json({ message: 'Livreur non trouvé' });
-    }
+    const livreurExiste = await prisma.livreur.findUnique({ where: { id: parseInt(livreurId) } });
+    if (!livreurExiste) return res.status(404).json({ message: 'Livreur non trouvé' });
 
-    // 2. Vérifier l'existence du client (user)
-    const userExiste = await prisma.user.findUnique({
-      where: { id: parseInt(userId) }
-    });
-    if (!userExiste) {
-      return res.status(404).json({ message: 'Utilisateur client non trouvé' });
-    }
+    const userExiste = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+    if (!userExiste) return res.status(404).json({ message: 'Utilisateur client non trouvé' });
 
-    // 3. Créer la livraison
+    const livraisonData = {
+      livreurId: parseInt(livreurId),
+      userId: parseInt(userId),
+      status: status || 'ASSIGNEE',
+    };
+    if (commandeId) livraisonData.commandeId = parseInt(commandeId);
+    if (colisId) livraisonData.colisId = parseInt(colisId);
+
     const livraison = await prisma.livraison.create({
-      data: {
-        livreurId: parseInt(livreurId),
-        userId: parseInt(userId),
-        commandeId: commandeId ? parseInt(commandeId) : undefined,
-        colisId: colisId ? parseInt(colisId) : undefined,
-        status: status || 'ASSIGNEE',
-      },
+      data: livraisonData,
       include: {
-        livreur: {
-          select: { username: true, prenom: true, telephone: true }
-        },
-        user: {
-          select: { username: true, phone: true }
-        },
-        commande: {
-          include: {
-            plat: true
-          }
-        },
+        livreur: { select: { username: true, prenom: true, telephone: true } },
+        user: { select: { username: true, phone: true } },
+        commande: { include: { plat: true } },
         colis: true,
         historiquePositions: true,
         serviceLivraison: true
@@ -94,7 +145,9 @@ async postNouvelleLivraison(req, res) {
       details: error.message
     });
   }
-},
+}
+
+
 
 
 

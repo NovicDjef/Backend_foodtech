@@ -12,6 +12,27 @@ const handleServerError = (res, error) => {
     error: process.env.NODE_ENV === 'development' ? error.message : undefined
   });
 };
+const notifyClient = async (clientPushToken, notification) => {
+  try {
+    const message = {
+      token: clientPushToken,
+      notification: {
+        title: notification.title,
+        body: notification.body
+      },
+      data: {
+        type: 'ORDER_UPDATE',
+        commandeId: notification.commandeId.toString()
+      }
+    };
+
+    await admin.messaging().send(message);
+    console.log('✅ Client notifié:', notification.title);
+    
+  } catch (error) {
+    console.error('❌ Erreur notification client:', error);
+  }
+}
 
 export default {
 
