@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { sendEmailWithOtp } from '../utils/mailer'
-import { generateOtpCode } from '../utils/generateOtp'
-
+import {sendEmailWithOtp} from '../utils/mailer.js';
 
 const prisma = new PrismaClient();
 
+const generateOtpCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString() // 6 digits
+}
 // Fonction utilitaire pour gérer les erreurs serveur
 const handleServerError = (res, error) => {
   console.error('Erreur serveur:', error);
