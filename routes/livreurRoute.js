@@ -32,4 +32,7 @@ router.post('/livreur/:id/gains/retirer', gainController.retirerGains);
 router.post('/gains/calculer', gainController.calculerGainLivraison);
 router.patch('/livreur/:id/commissions', gainController.updateCommissionsLivreur);
 
+
+router.post('/send-otp', livreurController.sendOtp)
+router.post('/verify-otp', livreurController.verifyOtp)
 export default router;

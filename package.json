@@ -16,6 +16,7 @@
     "@faker-js/faker": "^8.4.1",
     "@hachther/mesomb": "^1.1.1",
     "@prisma/client": "^6.9.0",
+    "@sendgrid/mail": "^8.1.5",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",

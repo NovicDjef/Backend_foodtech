@@ -285,6 +285,13 @@ model Livraison {
   gasOrder            GasOrder?          @relation(fields: [gasOrderId], references: [id])
 }
 
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  email     String
+  otp       String
+  expiresAt DateTime
+}
+
 model Livreur {
   id              Int      @id @default(autoincrement())
   username        String

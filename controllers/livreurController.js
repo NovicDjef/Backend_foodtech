@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { sendEmailWithOtp } from '../utils/mailer'
+import { generateOtpCode } from '../utils/generateOtp'
+
 
 const prisma = new PrismaClient();
 
@@ -35,6 +38,63 @@ const notifyClient = async (clientPushToken, notification) => {
 }
 
 export default {
+
+async sendOtp (req,res) {
+  const { email } = req.body
+
+  const livreur = await prisma.livreur.findUnique({ where: { email } })
+  if (!user) return res.status(404).json({ message: 'User not found' })
+
+  const otpCode = generateOtpCode()
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 min
+
+  await prisma.passwordReset.create({
+    data: {
+      email,
+      otp: otpCode,
+      expiresAt
+    }
+  })
+
+  await sendEmailWithOtp(email, otpCode)
+
+  res.json({ message: 'OTP sent to email' })
+},
+
+async verifyOtp (req, res) {
+  const { email, otp, newPassword } = req.body
+
+  const record = await prisma.passwordReset.findFirst({
+    where: {
+      email,
+      otp,
+      expiresAt: { gt: new Date() }
+    }
+  })
+
+  if (!record) return res.status(400).json({ message: 'Invalid or expired OTP' })
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  await prisma.livreur.update({
+    where: { email },
+    data: { password: hashedPassword }
+  })
+
+  await prisma.passwordReset.deleteMany({ where: { email } })
+
+  res.json({ message: 'Password updated successfully' })
+},
+
+
+async sendEmailWithOtp (email, otp) {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Votre code OTP pour réinitialiser le mot de passe',
+    text: `Votre code OTP est : ${otp}. Il expire dans 15 minutes.`
+  })
+},
 
   // Dans votre livreurController.js, ajoutez cette méthode
 async debugTokens(req, res) {
