@@ -41,15 +41,10 @@ const notifyClient = async (clientPushToken, notification) => {
 
 export default {
 
-// ✅ FONCTION SENDOTP CORRIGÉE
   async sendOtp(req, res) {
     try {
-      console.log('📧 Requête sendOtp reçue');
-      console.log('📦 Body:', req.body);
 
-      // ✅ VALIDATION 1: Vérifier le body
       if (!req.body) {
-        console.error('❌ Body manquant');
         return res.status(400).json({ 
           success: false,
           message: 'Corps de la requête manquant' 
@@ -58,49 +53,37 @@ export default {
 
       const { email } = req.body;
 
-      // ✅ VALIDATION 2: Vérifier l'email
       if (!email) {
-        console.error('❌ Email manquant');
         return res.status(400).json({ 
           success: false,
           message: 'Adresse email requise' 
         });
       }
 
-      // ✅ VALIDATION 3: Format email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        console.error('❌ Format email invalide:', email);
         return res.status(400).json({ 
           success: false,
           message: 'Format d\'adresse email invalide' 
         });
       }
 
-      console.log('🔍 Recherche livreur avec email:', email);
 
-      // ✅ CORRECTION PRINCIPALE: livreur au lieu de user
       const livreur = await prisma.livreur.findUnique({ 
         where: { email: email.toLowerCase() } 
       });
 
-      // ✅ CORRECTION: Vérifier 'livreur' pas 'user'
       if (!livreur) {
-        console.error('❌ Livreur non trouvé:', email);
         return res.status(404).json({ 
           success: false,
           message: 'Aucun compte livreur associé à cette adresse email' 
         });
       }
 
-      console.log('✅ Livreur trouvé:', livreur.id, livreur.prenom);
 
       // ✅ Génération OTP
       const otpCode = generateOtpCode();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
-
-      console.log('🔐 OTP généré:', otpCode);
-      console.log('⏰ Expire à:', expiresAt);
 
       // ✅ Nettoyage des anciens OTP pour cet email
       await prisma.passwordReset.deleteMany({
@@ -116,13 +99,10 @@ export default {
         }
       });
 
-      console.log('💾 OTP stocké en base de données');
 
-      // ✅ UTILISATION DU SERVICE SENDGRID (depuis utils/mailer.js)
       const emailResult = await sendEmailWithOtp(email.toLowerCase(), otpCode);
 
       if (emailResult.success) {
-        console.log('✅ Email envoyé via SendGrid:', emailResult.messageId);
         
         res.status(200).json({ 
           success: true,
@@ -140,9 +120,7 @@ export default {
       }
 
     } catch (error) {
-      console.error('❌ Erreur dans sendOtp:', error);
       
-      // ✅ Gestion d'erreurs détaillée
       if (error.code === 'P2002') {
         return res.status(409).json({
           success: false,
@@ -160,12 +138,9 @@ export default {
 
   async verifyOtp(req, res) {
     try {
-      console.log('🔐 Requête verifyOtp reçue');
-      console.log('📦 Body:', req.body);
 
       const { email, otp, newPassword } = req.body;
 
-      // ✅ VALIDATIONS
       if (!email || !otp || !newPassword) {
         return res.status(400).json({ 
           success: false,
@@ -180,9 +155,7 @@ export default {
         });
       }
 
-      console.log('🔍 Vérification OTP pour:', email);
 
-      // ✅ Recherche avec email en minuscules
       const record = await prisma.passwordReset.findFirst({
         where: {
           email: email.toLowerCase(),
@@ -199,14 +172,10 @@ export default {
         });
       }
 
-      console.log('✅ OTP valide');
-
-      // Récupération des infos du livreur pour l'email de confirmation
       const livreur = await prisma.livreur.findUnique({
         where: { email: email.toLowerCase() }
       });
 
-      // ✅ Hash du mot de passe avec salt plus élevé
       const hashedPassword = await bcrypt.hash(newPassword, 12);
       
       // Mise à jour du mot de passe
@@ -215,22 +184,16 @@ export default {
         data: { password: hashedPassword }
       });
 
-      console.log('🔒 Mot de passe mis à jour');
 
-      // Nettoyage des OTP utilisés
       await prisma.passwordReset.deleteMany({ 
         where: { email: email.toLowerCase() } 
       });
 
-      console.log('🗑️ OTP nettoyés');
-
-      // ✅ ENVOI EMAIL DE CONFIRMATION (optionnel mais recommandé)
       try {
         await sendPasswordChangeConfirmation(
           email.toLowerCase(), 
           livreur?.prenom || livreur?.username || 'Livreur'
         );
-        console.log('✅ Email de confirmation envoyé');
       } catch (emailError) {
         console.warn('⚠️ Email de confirmation non envoyé:', emailError.message);
         // On continue même si l'email de confirmation échoue
@@ -242,7 +205,6 @@ export default {
       });
 
     } catch (error) {
-      console.error('❌ Erreur dans verifyOtp:', error);
       
       res.status(500).json({ 
         success: false,
