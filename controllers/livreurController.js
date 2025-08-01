@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import {sendEmailWithOtp} from '../utils/mailer.js';
+import { sendEmailWithOtp, sendPasswordChangeConfirmation } from '../utils/mailer.js';
+
 
 const prisma = new PrismaClient();
 
@@ -40,62 +41,216 @@ const notifyClient = async (clientPushToken, notification) => {
 
 export default {
 
-async sendOtp (req,res) {
-  const { email } = req.body
+// ✅ FONCTION SENDOTP CORRIGÉE
+  async sendOtp(req, res) {
+    try {
+      console.log('📧 Requête sendOtp reçue');
+      console.log('📦 Body:', req.body);
 
-  const livreur = await prisma.livreur.findUnique({ where: { email } })
-  if (!user) return res.status(404).json({ message: 'User not found' })
+      // ✅ VALIDATION 1: Vérifier le body
+      if (!req.body) {
+        console.error('❌ Body manquant');
+        return res.status(400).json({ 
+          success: false,
+          message: 'Corps de la requête manquant' 
+        });
+      }
 
-  const otpCode = generateOtpCode()
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 min
+      const { email } = req.body;
 
-  await prisma.passwordReset.create({
-    data: {
-      email,
-      otp: otpCode,
-      expiresAt
+      // ✅ VALIDATION 2: Vérifier l'email
+      if (!email) {
+        console.error('❌ Email manquant');
+        return res.status(400).json({ 
+          success: false,
+          message: 'Adresse email requise' 
+        });
+      }
+
+      // ✅ VALIDATION 3: Format email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        console.error('❌ Format email invalide:', email);
+        return res.status(400).json({ 
+          success: false,
+          message: 'Format d\'adresse email invalide' 
+        });
+      }
+
+      console.log('🔍 Recherche livreur avec email:', email);
+
+      // ✅ CORRECTION PRINCIPALE: livreur au lieu de user
+      const livreur = await prisma.livreur.findUnique({ 
+        where: { email: email.toLowerCase() } 
+      });
+
+      // ✅ CORRECTION: Vérifier 'livreur' pas 'user'
+      if (!livreur) {
+        console.error('❌ Livreur non trouvé:', email);
+        return res.status(404).json({ 
+          success: false,
+          message: 'Aucun compte livreur associé à cette adresse email' 
+        });
+      }
+
+      console.log('✅ Livreur trouvé:', livreur.id, livreur.prenom);
+
+      // ✅ Génération OTP
+      const otpCode = generateOtpCode();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+      console.log('🔐 OTP généré:', otpCode);
+      console.log('⏰ Expire à:', expiresAt);
+
+      // ✅ Nettoyage des anciens OTP pour cet email
+      await prisma.passwordReset.deleteMany({
+        where: { email: email.toLowerCase() }
+      });
+
+      // Création du nouvel OTP
+      await prisma.passwordReset.create({
+        data: {
+          email: email.toLowerCase(),
+          otp: otpCode,
+          expiresAt
+        }
+      });
+
+      console.log('💾 OTP stocké en base de données');
+
+      // ✅ UTILISATION DU SERVICE SENDGRID (depuis utils/mailer.js)
+      const emailResult = await sendEmailWithOtp(email.toLowerCase(), otpCode);
+
+      if (emailResult.success) {
+        console.log('✅ Email envoyé via SendGrid:', emailResult.messageId);
+        
+        res.status(200).json({ 
+          success: true,
+          message: 'Code OTP envoyé à votre adresse email',
+          email: email.toLowerCase(),
+          expiresIn: '15 minutes'
+        });
+      } else {
+        console.error('❌ Erreur envoi email:', emailResult.message);
+        return res.status(502).json({
+          success: false,
+          message: 'Erreur lors de l\'envoi de l\'email',
+          error: emailResult.message
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Erreur dans sendOtp:', error);
+      
+      // ✅ Gestion d'erreurs détaillée
+      if (error.code === 'P2002') {
+        return res.status(409).json({
+          success: false,
+          message: 'Un OTP est déjà en cours pour cette adresse email'
+        });
+      }
+
+      res.status(500).json({ 
+        success: false,
+        message: 'Erreur interne du serveur lors de l\'envoi de l\'OTP',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
-  })
+  },
 
-  await sendEmailWithOtp(email, otpCode)
+  async verifyOtp(req, res) {
+    try {
+      console.log('🔐 Requête verifyOtp reçue');
+      console.log('📦 Body:', req.body);
 
-  res.json({ message: 'OTP sent to email' })
-},
+      const { email, otp, newPassword } = req.body;
 
-async verifyOtp (req, res) {
-  const { email, otp, newPassword } = req.body
+      // ✅ VALIDATIONS
+      if (!email || !otp || !newPassword) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Email, OTP et nouveau mot de passe requis' 
+        });
+      }
 
-  const record = await prisma.passwordReset.findFirst({
-    where: {
-      email,
-      otp,
-      expiresAt: { gt: new Date() }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Le mot de passe doit contenir au moins 6 caractères' 
+        });
+      }
+
+      console.log('🔍 Vérification OTP pour:', email);
+
+      // ✅ Recherche avec email en minuscules
+      const record = await prisma.passwordReset.findFirst({
+        where: {
+          email: email.toLowerCase(),
+          otp: otp.toString(),
+          expiresAt: { gt: new Date() }
+        }
+      });
+
+      if (!record) {
+        console.error('❌ OTP invalide ou expiré');
+        return res.status(400).json({ 
+          success: false,
+          message: 'Code OTP invalide ou expiré' 
+        });
+      }
+
+      console.log('✅ OTP valide');
+
+      // Récupération des infos du livreur pour l'email de confirmation
+      const livreur = await prisma.livreur.findUnique({
+        where: { email: email.toLowerCase() }
+      });
+
+      // ✅ Hash du mot de passe avec salt plus élevé
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      
+      // Mise à jour du mot de passe
+      await prisma.livreur.update({
+        where: { email: email.toLowerCase() },
+        data: { password: hashedPassword }
+      });
+
+      console.log('🔒 Mot de passe mis à jour');
+
+      // Nettoyage des OTP utilisés
+      await prisma.passwordReset.deleteMany({ 
+        where: { email: email.toLowerCase() } 
+      });
+
+      console.log('🗑️ OTP nettoyés');
+
+      // ✅ ENVOI EMAIL DE CONFIRMATION (optionnel mais recommandé)
+      try {
+        await sendPasswordChangeConfirmation(
+          email.toLowerCase(), 
+          livreur?.prenom || livreur?.username || 'Livreur'
+        );
+        console.log('✅ Email de confirmation envoyé');
+      } catch (emailError) {
+        console.warn('⚠️ Email de confirmation non envoyé:', emailError.message);
+        // On continue même si l'email de confirmation échoue
+      }
+
+      res.status(200).json({ 
+        success: true,
+        message: 'Mot de passe mis à jour avec succès' 
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur dans verifyOtp:', error);
+      
+      res.status(500).json({ 
+        success: false,
+        message: 'Erreur interne du serveur lors de la vérification',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
-  })
-
-  if (!record) return res.status(400).json({ message: 'Invalid or expired OTP' })
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10)
-
-  await prisma.livreur.update({
-    where: { email },
-    data: { password: hashedPassword }
-  })
-
-  await prisma.passwordReset.deleteMany({ where: { email } })
-
-  res.json({ message: 'Password updated successfully' })
-},
-
-
-async sendEmailWithOtp (email, otp) {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Votre code OTP pour réinitialiser le mot de passe',
-    text: `Votre code OTP est : ${otp}. Il expire dans 15 minutes.`
-  })
-},
+  },
 
   // Dans votre livreurController.js, ajoutez cette méthode
 async debugTokens(req, res) {

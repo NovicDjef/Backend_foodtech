@@ -5,6 +5,39 @@ import gainController from '../controllers/gainController.js';
 
 const router = express.Router();
 
+
+const validateOtpRequest = (req, res, next) => {
+  // Log de la requête
+  console.log(`📡 ${req.method} ${req.path}`);
+  console.log('📦 Body reçu:', req.body);
+  console.log('📋 Headers:', {
+    'content-type': req.headers['content-type'],
+    'accept': req.headers['accept']
+  });
+
+  // Vérification du Content-Type
+  if (!req.headers['content-type'] || !req.headers['content-type'].includes('application/json')) {
+    console.error('❌ Content-Type incorrect:', req.headers['content-type']);
+    return res.status(400).json({
+      success: false,
+      message: 'Content-Type doit être application/json',
+      received: req.headers['content-type']
+    });
+  }
+
+  // Vérification que le body existe et n'est pas vide
+  if (!req.body || Object.keys(req.body).length === 0) {
+    console.error('❌ Body vide ou manquant');
+    return res.status(400).json({
+      success: false,
+      message: 'Corps de la requête requis',
+      received: req.body
+    });
+  }
+
+  next();
+};
+
 // Routes pour les livreurs
 router.get('/livreurs', livreurController.getAllLivreur);
 router.get('/livreur/:id', livreurController.getLivreurById);
@@ -33,6 +66,10 @@ router.post('/gains/calculer', gainController.calculerGainLivraison);
 router.patch('/livreur/:id/commissions', gainController.updateCommissionsLivreur);
 
 
-router.post('/send-otp', livreurController.sendOtp)
-router.post('/verify-otp', livreurController.verifyOtp)
+// router.post('/send-otp', livreurController.sendOtp)
+// router.post('/verify-otp', livreurController.verifyOtp)
+// ✅ ROUTES OTP AVEC MIDDLEWARE DE VALIDATION
+router.post('/send-otp', validateOtpRequest, livreurController.sendOtp);
+router.post('/verify-otp', validateOtpRequest, livreurController.verifyOtp);
+
 export default router;

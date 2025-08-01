@@ -72,6 +72,8 @@ jobs:
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           EXPO_ACCESS_TOKEN=${{ secrets.EXPO_ACCESS_TOKEN }}
           JWT_SECRET=${{ secrets.JWT_SECRET || 'your-default-secret-key' }}
+          EMAIL_SENDER=${{ secrets.EMAIL_SENDER }}
+          SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
           EOF
           
           # Start/Restart with PM2
